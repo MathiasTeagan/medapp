@@ -1,0 +1,41 @@
+Bu uygulama tıp öğrencileri, pratisyen hekimler, asistan hekimler ve uzman hekimler için tasarlancaktır. Temel amaç akademik kariyer yolunda gelişimin doğru şekilde devam edebilmesi için gereken yolu gösterebilmek, planlama yaptırmak, takibi sağlamak ve süreç boyunca gereken motivasyonu sağlayabilmektir. 
+
+Dart dili ve Flutter Framework kullanılarak yapılması isteniyor.
+Material 3 Desing Kullan
+Flutterın en yeni versiyonunu kullan.
+
+Temel Sorun
+Çok uzun sürecek bir akademik süreçte (uzmanlığa kadar en az  6 + 5 yıl) hekim adayları ve hekimlerde sıklıkla görülen; önünü görememek, planlama yapamamak, süreci takip edememek ve motivasyon kaybı.  
+
+Amaçlar
+1.	Yol göstermek
+2.	Planlama yaptırmak
+3.	Takibi sağlamak
+4.	Motive etmek
+
+Kütüphane diye bir ekran olacak. Uygulamanın temel içeriği textbooklar ve guidelinelar bu ekranda ayrı tablarda listenecek. Kullanıcının seçtiği akademik kariyer seviyesine ve branşına göre textbook ve guidelinelar listenecek. Her bir textbook ve guidelinenın içerdiği chapterlar tek tek listenecek. Bu ekranın en üst kısmında branşların listelendiği bir dropdown menu olacak. Eğer kullanıcının branşı daha önceden belliyse bu ekranda direk o branş seçili olarak gelecek. Dropdown menun altında bir arama kutucuğu olacak. Kullanıcı buradan textbook veya guideline adı arayabilecek. Bu arama çubuğunun altında ise textbook ve guidelinaların listelendiği container olacak. 
+
+Temel Materyal
+1.	Textbook
+2.	Guideline 
+3.	Journal (opsiyonel)
+4.	Article (opsiyonel)
+
+Kullanıcı bir chapterın üstüne gelip tıkladığında okundu olarak işaretleyebilecek.  Okundu olarak işaretlenen chapter ismi rengi değişecek ve yeşil olacak. Yanlışlıkla işaretlemeyi engellemek için bu noktada bir kontrol şartı getirebiliriz.
+
+Performans metriklerini gösteren bir ekran olacak. Bu ekranda geçen haftanın günleri ve bu haftanın günleri 7 ayrı kutucuk halinde görünecek, bir alt satırda da ise bu haftanın günleri 7 ayrı kutucuk halinde görünecek. Bu kutuların içinde ayın kaçıncı günü olduğu sayıyla gösterilecek. Akşam saat 22:00 gibi kullanıcıya bir bildirim gidecek. “Bugün bir chapter okudun mu?” Bildirimin altında ise Evet Hayır butonları olacak. Kullanıcı eveti işaretlerse performans ekranındaki o günün kutusu yeşil olacak. Hayır işaretlerse kutu kırmızı olacak. Herhangi bir işaretleme yapmazsa kutu gri olacak.
+
+Bir logbook ekranı olacak. Okunan chapterlar günüyle beraber o logbooka kayıt edilerek listelenecek. 
+
+Plan yapma ekranı olacak. Önümüzdeki haftalar için günler seçilerek belirli bir chapter şu gün okunacak diye bir planlama yapılabilecek. O günün sonuna “Planını gerçekleştirip X chapterını okudun mu?” şeklinde bir bildirim gidecek. Evet Hayır şeklinde cevap verebilecek kullanıcı.
+
+“Bugün ne okusam?” Adlı bir ekran olacak. Bu ekranın orta alt kısmında bir buton olacak. Kullanıcı bu butona bastığında ekranın ortasında bir yatay slot machine effect animasyonlu spinner olacak. Chapter isimleri hızlı başlayan ve sona doğru yavaşlayarak duran bir animasyon içerisinde dönecek. En son durulan chapter kullanıcıya random chapter önerisi olarak sunulmuş olacak. Kullanıcı öneriyi beğenirse bunu hedeflere ekleyebilecek. Beğenmezse butona yeniden basacak ve spinner yeniden dönmeye başlayacak.
+
+Ekranlar
+Dashboard
+Bugün ne okusam?
+Kütüphane
+Planlama
+Logbook
+Performans
+
