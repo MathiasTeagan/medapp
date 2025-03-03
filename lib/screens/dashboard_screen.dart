@@ -108,34 +108,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final userProvider = Provider.of<UserProvider>(context);
     final goalsProvider = Provider.of<GoalsProvider>(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _handleLogout,
-            tooltip: 'Çıkış Yap',
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(size.width * 0.04),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildProfileCard(context, theme, size, userProvider),
-              SizedBox(height: size.height * 0.015),
-              _buildMetricsGrid(context, theme, size, goalsProvider),
-              SizedBox(height: size.height * 0.015),
-              _buildNextReadingCard(theme, context),
-              SizedBox(height: size.height * 0.02),
-              _buildQuickAccess(theme, context),
-              SizedBox(height: size.height * 0.02),
-              _buildRecentActivities(theme),
-            ],
-          ),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.all(size.width * 0.04),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildProfileCard(context, theme, size, userProvider),
+            SizedBox(height: size.height * 0.015),
+            _buildMetricsGrid(context, theme, size, goalsProvider),
+            SizedBox(height: size.height * 0.015),
+            _buildNextReadingCard(theme, context),
+            SizedBox(height: size.height * 0.02),
+            _buildQuickAccess(theme, context),
+            SizedBox(height: size.height * 0.02),
+            _buildRecentActivities(theme),
+          ],
         ),
       ),
     );
