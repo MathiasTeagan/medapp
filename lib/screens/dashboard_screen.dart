@@ -14,6 +14,8 @@ import 'planning_screen.dart';
 import 'logbook_screen.dart';
 import 'profile_edit_screen.dart';
 import '../providers/auth_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'auth/login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -24,9 +26,37 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     context.read<AuthProvider>().setContext(context);
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    if (!mounted) return;
+    final authProvider = context.read<AuthProvider>();
+
+    // Kullanıcı null ise veya giriş yapmamışsa veri çekmeyi dene
+    if (authProvider.currentUser == null) return;
+
+    try {
+      final userData = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(authProvider.currentUser?.uid)
+          .get();
+
+      if (userData.exists && mounted) {
+        await authProvider.updateUserProvider(userData.data()!);
+      }
+    } catch (e) {
+      // Hata durumunda sessizce devam et
+      debugPrint('Error loading user data: $e');
+    }
   }
 
   Future<void> _handleLogout() async {
@@ -50,7 +80,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (confirmed == true) {
       if (!mounted) return;
-      await context.read<AuthProvider>().signOut();
+      final authProvider = context.read<AuthProvider>();
+      await authProvider.signOut();
+
+      if (!mounted) return;
+      // Çıkış başarılı bildirimi
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Çıkış yapıldı'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Tüm ekranları kapat ve login ekranına yönlendir
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
     }
   }
 

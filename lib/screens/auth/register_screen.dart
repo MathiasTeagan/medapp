@@ -60,16 +60,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
               academicLevel: _selectedAcademicLevel,
               branch: _selectedBranch,
             );
+
+        if (!mounted) return;
+
+        // Başarılı kayıt bildirimi
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Kayıt başarılı! Yönlendiriliyorsunuz...'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Kısa bir gecikme ile ana ekrana yönlendir
+        await Future.delayed(const Duration(seconds: 1));
+        if (!mounted) return;
+        Navigator.of(context).pop();
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(_getErrorMessage(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
+  }
+
+  String _getErrorMessage(String error) {
+    if (error.contains('email-already-in-use')) {
+      return 'Bu e-posta adresi zaten kullanımda';
+    } else if (error.contains('invalid-email')) {
+      return 'Geçersiz e-posta adresi';
+    } else if (error.contains('operation-not-allowed')) {
+      return 'E-posta/şifre girişi etkin değil';
+    } else if (error.contains('weak-password')) {
+      return 'Şifre çok zayıf';
+    }
+    return 'Bir hata oluştu. Lütfen tekrar deneyin.';
   }
 
   @override

@@ -29,7 +29,7 @@ class AuthProvider with ChangeNotifier {
 
   User? get currentUser => _auth.currentUser;
 
-  Future<void> _updateUserProvider(Map<String, dynamic> userData) {
+  Future<void> updateUserProvider(Map<String, dynamic> userData) {
     if (!_context.mounted) return Future.value();
 
     final userProvider = Provider.of<UserProvider>(_context, listen: false);
@@ -92,7 +92,7 @@ class AuthProvider with ChangeNotifier {
       await prefs.setString('userBranch', branch);
       await prefs.setString('academicLevel', academicLevel);
 
-      await _updateUserProvider(userData);
+      await updateUserProvider(userData);
     } catch (e) {
       rethrow;
     } finally {
@@ -125,7 +125,7 @@ class AuthProvider with ChangeNotifier {
         await prefs.setString(
             'academicLevel', userData.data()!['academicLevel']);
 
-        await _updateUserProvider(userData.data()!);
+        await updateUserProvider(userData.data()!);
       }
     } catch (e) {
       rethrow;
@@ -157,6 +157,9 @@ class AuthProvider with ChangeNotifier {
       }
 
       await _auth.signOut();
+      _user = null;
+    } catch (e) {
+      debugPrint('Error during sign out: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
