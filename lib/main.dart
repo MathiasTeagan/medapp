@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'providers/goals_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/planned_readings_provider.dart';
+import 'providers/auth_provider.dart';
+import 'screens/splash_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/performance_screen.dart';
 import 'services/notification_service.dart';
 import 'services/navigation_service.dart';
 import 'theme/app_theme.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   await NotificationService.instance.initialize();
   await NotificationService.instance.scheduleDailyReadingCheck();
@@ -21,6 +29,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => GoalsProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => PlannedReadingsProvider()),
@@ -40,7 +49,7 @@ class MyApp extends StatelessWidget {
       title: 'MedApp',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const MainScreen(),
+      home: const SplashScreen(),
     );
   }
 }
@@ -67,12 +76,51 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  Future<void> _handleLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Çıkış Yap'),
+        content: const Text('Çıkış yapmak istediğinizden emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('İptal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Çıkış Yap'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      if (!context.mounted) return;
+      await context.read<AuthProvider>().signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 600;
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(_selectedIndex == 0
+            ? 'Dashboard'
+            : _selectedIndex == 1
+                ? 'Kütüphane'
+                : 'Performans'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => _handleLogout(context),
+            tooltip: 'Çıkış Yap',
+          ),
+        ],
+      ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../providers/goals_provider.dart';
 
 class GoalsScreen extends StatefulWidget {
