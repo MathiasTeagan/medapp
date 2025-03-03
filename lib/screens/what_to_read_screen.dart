@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'dart:math';
 import '../models/goal.dart';
 import '../providers/goals_provider.dart';
+import '../providers/user_provider.dart';
 import '../dummy/materials_data.dart';
 
 class WhatToReadScreen extends StatefulWidget {
@@ -19,14 +20,55 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
   late Animation<double> _animation;
   String _selectedChapter = 'Tap to Spin!';
   bool _isSpinning = false;
-  String _selectedBranch = 'Kardiyoloji';
+  String? _selectedBranch;
   final Random _random = Random();
   final List<String> _animatingChapters = [];
   int _currentAnimatingIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 4000),
+      vsync: this,
+    );
+
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutExpo,
+    );
+
+    _controller.addListener(() {
+      if (_isSpinning) {
+        final progress = _controller.value;
+        final updateInterval = _calculateUpdateInterval(progress);
+
+        if (_lastUpdate == null ||
+            DateTime.now().difference(_lastUpdate!) > updateInterval) {
+          _updateAnimatingChapter();
+          _lastUpdate = DateTime.now();
+        }
+      }
+    });
+
+    _controller.addStatusListener(_onAnimationStatusChanged);
+
+    // Kullanıcının branşını kontrol et
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProvider = context.read<UserProvider>();
+      if (userProvider.specialty.isNotEmpty) {
+        setState(() {
+          _selectedBranch = userProvider.specialty;
+        });
+      }
+    });
+  }
+
   List<String> get _branches => MaterialsData.branches;
 
   Map<String, List<String>> get _branchChapters {
+    if (_selectedBranch == null) return {};
+
     final allChapters = <String, List<String>>{};
 
     // Textbook chapters
@@ -63,32 +105,11 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
   DateTime? _lastUpdate;
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 4000),
-      vsync: this,
-    );
-
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutExpo,
-    );
-
-    _controller.addListener(() {
-      if (_isSpinning) {
-        final progress = _controller.value;
-        final updateInterval = _calculateUpdateInterval(progress);
-
-        if (_lastUpdate == null ||
-            DateTime.now().difference(_lastUpdate!) > updateInterval) {
-          _updateAnimatingChapter();
-          _lastUpdate = DateTime.now();
-        }
-      }
-    });
-
-    _controller.addStatusListener(_onAnimationStatusChanged);
+  void dispose() {
+    _controller.removeStatusListener(_onAnimationStatusChanged);
+    _controller.stop();
+    _controller.dispose();
+    super.dispose();
   }
 
   Duration _calculateUpdateInterval(double progress) {
@@ -113,37 +134,6 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
     return chapters[normalizedIndex];
   }
 
-  Widget _buildSpinnerItem(
-      String text, bool isSelected, Size size, bool isSmallScreen) {
-    return Container(
-      height: size.height * 0.04,
-      width: size.width * 0.8,
-      margin: EdgeInsets.symmetric(vertical: size.height * 0.002),
-      decoration: BoxDecoration(
-        color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
-        border: isSelected
-            ? Border(
-                top: BorderSide(color: Colors.blue.shade200, width: 2),
-                bottom: BorderSide(color: Colors.blue.shade200, width: 2),
-              )
-            : null,
-      ),
-      child: Center(
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: isSmallScreen ? 10 : 13,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? Colors.black : Colors.black54,
-          ),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    );
-  }
-
   void _onAnimationStatusChanged(AnimationStatus status) {
     if (status == AnimationStatus.completed) {
       if (mounted) {
@@ -157,14 +147,6 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
         _controller.reset();
       }
     }
-  }
-
-  @override
-  void dispose() {
-    _controller.removeStatusListener(_onAnimationStatusChanged);
-    _controller.stop();
-    _controller.dispose();
-    super.dispose();
   }
 
   void _handleBack() {
@@ -196,7 +178,7 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
   }
 
   void _spinWheel() {
-    if (!_isSpinning) {
+    if (!_isSpinning && _selectedBranch != null) {
       setState(() {
         _isSpinning = true;
         _lastUpdate = null;
@@ -252,186 +234,231 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
                   );
                 }).toList(),
                 onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _selectedBranch = newValue;
-                      _selectedChapter = 'Tap to Spin!';
-                    });
-                  }
+                  setState(() {
+                    _selectedBranch = newValue;
+                    _selectedChapter = 'Tap to Spin!';
+                  });
                 },
+                hint: const Text('Branş seçiniz'),
               ),
             ),
             const SizedBox(height: 40),
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AnimatedBuilder(
-                      animation: _animation,
-                      builder: (context, child) {
-                        return Container(
-                          height: size.height * 0.25,
-                          width: size.width * 0.85,
-                          margin: EdgeInsets.symmetric(
-                              vertical: size.height * 0.01),
-                          padding: EdgeInsets.symmetric(
-                            vertical: size.height * 0.01,
-                            horizontal: size.width * 0.02,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.blue.withOpacity(0.1),
-                                Colors.blue.shade50,
-                                Colors.blue.shade100,
-                                Colors.blue.shade50,
-                                Colors.blue.withOpacity(0.1),
-                              ],
+            if (_selectedBranch != null) ...[
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedBuilder(
+                        animation: _animation,
+                        builder: (context, child) {
+                          return Container(
+                            height: size.height * 0.25,
+                            width: size.width * 0.85,
+                            margin: EdgeInsets.symmetric(
+                                vertical: size.height * 0.01),
+                            padding: EdgeInsets.symmetric(
+                              vertical: size.height * 0.01,
+                              horizontal: size.width * 0.02,
                             ),
-                            border: Border.all(color: Colors.blue, width: 2),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.blue.withOpacity(0.2),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ShaderMask(
-                            shaderCallback: (Rect bounds) {
-                              return const LinearGradient(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  Colors.transparent,
-                                  Colors.black,
-                                  Colors.black,
-                                  Colors.black,
-                                  Colors.transparent,
+                                  Colors.blue.withOpacity(0.1),
+                                  Colors.blue.shade50,
+                                  Colors.blue.shade100,
+                                  Colors.blue.shade50,
+                                  Colors.blue.withOpacity(0.1),
                                 ],
-                                stops: [0.0, 0.2, 0.4, 0.8, 1.0],
-                              ).createShader(bounds);
-                            },
-                            blendMode: BlendMode.dstIn,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _buildSpinnerItem(
-                                  _getChapterAt(_currentAnimatingIndex - 2),
-                                  false,
-                                  size,
-                                  isSmallScreen,
-                                ),
-                                _buildSpinnerItem(
-                                  _getChapterAt(_currentAnimatingIndex - 1),
-                                  false,
-                                  size,
-                                  isSmallScreen,
-                                ),
-                                _buildSpinnerItem(
-                                  _getChapterAt(_currentAnimatingIndex),
-                                  true,
-                                  size,
-                                  isSmallScreen,
-                                ),
-                                _buildSpinnerItem(
-                                  _getChapterAt(_currentAnimatingIndex + 1),
-                                  false,
-                                  size,
-                                  isSmallScreen,
-                                ),
-                                _buildSpinnerItem(
-                                  _getChapterAt(_currentAnimatingIndex + 2),
-                                  false,
-                                  size,
-                                  isSmallScreen,
+                              ),
+                              border: Border.all(color: Colors.blue, width: 2),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blue.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                            child: ShaderMask(
+                              shaderCallback: (Rect bounds) {
+                                return const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black,
+                                    Colors.black,
+                                    Colors.black,
+                                    Colors.transparent,
+                                  ],
+                                  stops: [0.0, 0.2, 0.4, 0.8, 1.0],
+                                ).createShader(bounds);
+                              },
+                              blendMode: BlendMode.dstIn,
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _buildSpinnerItem(
+                                    _getChapterAt(_currentAnimatingIndex - 2),
+                                    false,
+                                    size,
+                                    isSmallScreen,
+                                  ),
+                                  _buildSpinnerItem(
+                                    _getChapterAt(_currentAnimatingIndex - 1),
+                                    false,
+                                    size,
+                                    isSmallScreen,
+                                  ),
+                                  _buildSpinnerItem(
+                                    _getChapterAt(_currentAnimatingIndex),
+                                    true,
+                                    size,
+                                    isSmallScreen,
+                                  ),
+                                  _buildSpinnerItem(
+                                    _getChapterAt(_currentAnimatingIndex + 1),
+                                    false,
+                                    size,
+                                    isSmallScreen,
+                                  ),
+                                  _buildSpinnerItem(
+                                    _getChapterAt(_currentAnimatingIndex + 2),
+                                    false,
+                                    size,
+                                    isSmallScreen,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            if (!_isSpinning && _selectedChapter != 'Tap to Spin!')
+              const SizedBox(height: 20),
+              if (!_isSpinning && _selectedChapter != 'Tap to Spin!')
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 80),
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      final parts = _selectedChapter.split(' - ');
+                      final goal = Goal(
+                        bookTitle: parts[0],
+                        chapterName: parts[1],
+                        branch: _selectedBranch!,
+                        addedDate: DateTime.now(),
+                        type:
+                            MaterialsData.textbookChapters.containsKey(parts[0])
+                                ? 'Textbook'
+                                : 'Guideline',
+                        isCompleted: false,
+                      );
+                      context.read<GoalsProvider>().addGoal(goal);
+                      _showSuccessSnackBar(context);
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      minimumSize: const Size.fromHeight(60),
+                    ),
+                    icon: Icon(
+                      Icons.add_task,
+                      size: size.width * 0.06,
+                      color: Colors.white,
+                    ),
+                    label: const Text(
+                      'Hedeflere Ekle',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 80),
                 child: FilledButton.icon(
-                  onPressed: () {
-                    final parts = _selectedChapter.split(' - ');
-                    final goal = Goal(
-                      bookTitle: parts[0],
-                      chapterName: parts[1],
-                      branch: _selectedBranch,
-                      addedDate: DateTime.now(),
-                      type: MaterialsData.textbookChapters.containsKey(parts[0])
-                          ? 'Textbook'
-                          : 'Guideline',
-                      isCompleted: false,
-                    );
-                    context.read<GoalsProvider>().addGoal(goal);
-                    _showSuccessSnackBar(context);
-                  },
+                  onPressed: _isSpinning ? null : _spinWheel,
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: _isSpinning
+                        ? Colors.grey
+                        : Theme.of(context).colorScheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     minimumSize: const Size.fromHeight(60),
                   ),
-                  icon: Icon(
-                    Icons.add_task,
-                    size: size.width * 0.06,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    'Hedeflere Ekle',
-                    style: TextStyle(
+                  icon: AnimatedRotation(
+                    turns: _animation.value * 10,
+                    duration: const Duration(milliseconds: 100),
+                    child: Icon(
+                      Icons.refresh,
+                      size: size.width * 0.06,
                       color: Colors.white,
+                    ),
+                  ),
+                  label: Text(
+                    _isSpinning ? 'Spinning...' : 'Spin!',
+                    style: TextStyle(
+                      fontSize: size.width * 0.04,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 80),
-              child: FilledButton.icon(
-                onPressed: _isSpinning ? null : _spinWheel,
-                style: FilledButton.styleFrom(
-                  backgroundColor: _isSpinning
-                      ? Colors.grey
-                      : Theme.of(context).colorScheme.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  minimumSize: const Size.fromHeight(60),
-                ),
-                icon: AnimatedRotation(
-                  turns: _animation.value * 10,
-                  duration: const Duration(milliseconds: 100),
-                  child: Icon(
-                    Icons.refresh,
-                    size: size.width * 0.06,
-                    color: Colors.white,
-                  ),
-                ),
-                label: Text(
-                  _isSpinning ? 'Spinning...' : 'Spin!',
-                  style: TextStyle(
-                    fontSize: size.width * 0.04,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+            ] else
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'Lütfen bir branş seçiniz',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 16 : 18,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
               ),
-            ),
             const SizedBox(height: 20),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpinnerItem(
+      String text, bool isSelected, Size size, bool isSmallScreen) {
+    return Container(
+      height: size.height * 0.04,
+      width: size.width * 0.8,
+      margin: EdgeInsets.symmetric(vertical: size.height * 0.002),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+        border: isSelected
+            ? Border(
+                top: BorderSide(color: Colors.blue.shade200, width: 2),
+                bottom: BorderSide(color: Colors.blue.shade200, width: 2),
+              )
+            : null,
+      ),
+      child: Center(
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: isSmallScreen ? 10 : 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.black : Colors.black54,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
