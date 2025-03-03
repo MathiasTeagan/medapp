@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../dummy/materials_data.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../theme/text_styles.dart';
+import '../models/goal.dart';
+import '../providers/goals_provider.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final String title;
@@ -33,6 +36,34 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   void _toggleChapterCompletion(String chapter) {
+    final goals = context.read<GoalsProvider>().goals;
+    final goalToUpdate = goals.firstWhere(
+      (goal) => goal.bookTitle == widget.title && goal.chapterName == chapter,
+      orElse: () => Goal(
+        bookTitle: widget.title,
+        chapterName: chapter,
+        branch: widget.branch,
+        addedDate: DateTime.now(),
+        type: widget.type,
+        isCompleted: false,
+      ),
+    );
+
+    if (goals.contains(goalToUpdate)) {
+      context.read<GoalsProvider>().toggleGoalCompletion(goalToUpdate);
+    } else {
+      final newGoal = Goal(
+        bookTitle: widget.title,
+        chapterName: chapter,
+        branch: widget.branch,
+        addedDate: DateTime.now(),
+        type: widget.type,
+        isCompleted: true,
+        completedDate: DateTime.now(),
+      );
+      context.read<GoalsProvider>().addGoal(newGoal);
+    }
+
     setState(() {
       if (_completedChapters.contains(chapter)) {
         _completedChapters.remove(chapter);
@@ -40,6 +71,42 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         _completedChapters.add(chapter);
       }
     });
+  }
+
+  void _addToGoals(String chapter) {
+    final goal = Goal(
+      bookTitle: widget.title,
+      chapterName: chapter,
+      branch: widget.branch,
+      addedDate: DateTime.now(),
+      type: widget.type,
+      isCompleted: false,
+    );
+    context.read<GoalsProvider>().addGoal(goal);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Hedeflere eklendi!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _removeFromGoals(String chapter) {
+    final goals = context.read<GoalsProvider>().goals;
+    final goalToRemove = goals.firstWhere((goal) =>
+        goal.bookTitle == widget.title && goal.chapterName == chapter);
+    context.read<GoalsProvider>().removeGoal(goalToRemove);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Hedeflerden çıkarıldı!'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  bool _isInGoals(String chapter, List<Goal> goals) {
+    return goals.any((goal) =>
+        goal.bookTitle == widget.title && goal.chapterName == chapter);
   }
 
   List<String> _getFilteredChapters(List<String> chapters) {
@@ -59,6 +126,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final filteredChapters = _getFilteredChapters(chapters);
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 600;
+    final goals = context.watch<GoalsProvider>().goals;
 
     return Scaffold(
       appBar: AppBar(
@@ -153,6 +221,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   itemBuilder: (context, index) {
                     final chapter = filteredChapters[index];
                     final isCompleted = _completedChapters.contains(chapter);
+                    final isTargeted = _isInGoals(chapter, goals);
 
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -167,8 +236,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                   fontSize: isSmallScreen ? 14 : 16,
                                   color: isCompleted
                                       ? AppColors.completedMetric
-                                      : AppColors.primaryText,
-                                  fontWeight: isCompleted
+                                      : isTargeted
+                                          ? Colors.orange
+                                          : AppColors.primaryText,
+                                  fontWeight: isCompleted || isTargeted
                                       ? FontWeight.w600
                                       : FontWeight.normal,
                                 ),
@@ -178,6 +249,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                               Icon(
                                 Icons.check_circle,
                                 color: AppColors.completedMetric,
+                                size: isSmallScreen ? 20 : 24,
+                              ),
+                            if (isTargeted && !isCompleted)
+                              Icon(
+                                Icons.flag,
+                                color: Colors.orange,
                                 size: isSmallScreen ? 20 : 24,
                               ),
                           ],
@@ -196,6 +273,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   void _showCompletionDialog(String chapter) {
     final isCompleted = _completedChapters.contains(chapter);
+    final goals = context.read<GoalsProvider>().goals;
+    final isTargeted = _isInGoals(chapter, goals);
 
     showDialog(
       context: context,
@@ -211,30 +290,110 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           style: AppTextStyles.bodyLarge(context),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'İptal',
-              style: AppTextStyles.labelLarge(context).copyWith(
-                color: AppColors.primary,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!isCompleted)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          if (isTargeted) {
+                            _removeFromGoals(chapter);
+                          } else {
+                            _addToGoals(chapter);
+                          }
+                          Navigator.pop(context);
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor:
+                              isTargeted ? Colors.red : Colors.orange,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          alignment: Alignment.center,
+                        ),
+                        icon: Icon(
+                            isTargeted ? Icons.remove_circle : Icons.flag,
+                            color: Colors.white),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            isTargeted ? 'Hedeflerden Çıkar' : 'Hedeflere Ekle',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.labelLarge(context).copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          _toggleChapterCompletion(chapter);
+                          Navigator.pop(context);
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.completedMetric,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          alignment: Alignment.center,
+                        ),
+                        icon: const Icon(Icons.check, color: Colors.white),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Okundu Yap',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.labelLarge(context).copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                FilledButton.icon(
+                  onPressed: () {
+                    _toggleChapterCompletion(chapter);
+                    Navigator.pop(context);
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: isCompleted
+                        ? AppColors.error
+                        : AppColors.completedMetric,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    alignment: Alignment.center,
+                  ),
+                  icon: Icon(
+                    isCompleted ? Icons.close : Icons.check,
+                    color: Colors.white,
+                  ),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      isCompleted ? 'Okunmadı Yap' : 'Okundu Yap',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.labelLarge(context).copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'İptal',
+                  style: AppTextStyles.labelLarge(context).copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
-            ),
-          ),
-          FilledButton(
-            onPressed: () {
-              _toggleChapterCompletion(chapter);
-              Navigator.pop(context);
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor:
-                  isCompleted ? AppColors.error : AppColors.completedMetric,
-            ),
-            child: Text(
-              isCompleted ? 'Okunmadı Yap' : 'Okundu Yap',
-              style: AppTextStyles.labelLarge(context).copyWith(
-                color: Colors.white,
-              ),
-            ),
+            ],
           ),
         ],
       ),

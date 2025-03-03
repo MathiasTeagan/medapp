@@ -366,10 +366,15 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 80),
                 child: FilledButton.icon(
                   onPressed: () {
+                    final parts = _selectedChapter.split(' - ');
                     final goal = Goal(
-                      chapter: _selectedChapter,
+                      bookTitle: parts[0],
+                      chapterName: parts[1],
                       branch: _selectedBranch,
                       addedDate: DateTime.now(),
+                      type: MaterialsData.textbookChapters.containsKey(parts[0])
+                          ? 'Textbook'
+                          : 'Guideline',
                       isCompleted: false,
                     );
                     context.read<GoalsProvider>().addGoal(goal);

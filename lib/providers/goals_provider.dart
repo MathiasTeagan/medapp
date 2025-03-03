@@ -19,11 +19,15 @@ class GoalsProvider with ChangeNotifier {
   void toggleGoalCompletion(Goal goal) {
     final index = _goals.indexOf(goal);
     if (index != -1) {
+      final newIsCompleted = !goal.isCompleted;
       _goals[index] = Goal(
-        chapter: goal.chapter,
+        bookTitle: goal.bookTitle,
+        chapterName: goal.chapterName,
         branch: goal.branch,
         addedDate: goal.addedDate,
-        isCompleted: !goal.isCompleted,
+        type: goal.type,
+        isCompleted: newIsCompleted,
+        completedDate: newIsCompleted ? DateTime.now() : null,
       );
       notifyListeners();
     }

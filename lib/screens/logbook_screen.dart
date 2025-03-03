@@ -1,187 +1,137 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/goals_provider.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
+import '../theme/text_styles.dart';
+import 'package:intl/intl.dart';
 
 class LogbookScreen extends StatelessWidget {
   const LogbookScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.width < 600;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Logbook'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              _showFilterDialog(context);
-            },
-          ),
-        ],
       ),
-      body: Column(
-        children: [
-          _buildSummaryCard(),
-          const Divider(),
-          _buildLogList(),
-        ],
+      body: Padding(
+        padding: AppTheme.screenPadding(context),
+        child: _buildLogList(context, isSmallScreen),
       ),
     );
   }
 
-  Widget _buildSummaryCard() {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Text(
-              'Okuma İstatistikleri',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+  Widget _buildLogList(BuildContext context, bool isSmallScreen) {
+    return Consumer<GoalsProvider>(
+      builder: (context, goalsProvider, child) {
+        var completedGoals = goalsProvider.goals
+            .where((goal) => goal.isCompleted)
+            .toList()
+          ..sort((a, b) {
+            if (a.completedDate == null && b.completedDate == null) return 0;
+            if (a.completedDate == null) return 1;
+            if (b.completedDate == null) return -1;
+            return b.completedDate!.compareTo(a.completedDate!);
+          });
+
+        if (completedGoals.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildStatItem('Bu Ay', '15'),
-                _buildStatItem('Bu Hafta', '3'),
-                _buildStatItem('Toplam', '45'),
+                Icon(
+                  Icons.book,
+                  size: isSmallScreen ? 48 : 64,
+                  color: Colors.grey,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Henüz okunmuş chapter yok',
+                  style: AppTextStyles.titleMedium(context).copyWith(
+                    color: Colors.grey,
+                    fontSize: isSmallScreen ? 16 : 18,
+                  ),
+                ),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
+          );
+        }
 
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.blue,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.grey,
-          ),
-        ),
-      ],
-    );
-  }
+        return ListView.builder(
+          itemCount: completedGoals.length,
+          itemBuilder: (context, index) {
+            final goal = completedGoals[index];
+            final isTextbook = goal.type == 'Textbook';
 
-  Widget _buildLogList() {
-    // Dummy data
-    final List<Map<String, String>> logs = [
-      {
-        'date': '2024-03-15',
-        'title': 'Kardiyoloji - Chapter 1: Temel Kavramlar',
-        'type': 'Textbook',
-      },
-      {
-        'date': '2024-03-14',
-        'title': 'ESC Heart Failure Guidelines 2023',
-        'type': 'Guideline',
-      },
-      {
-        'date': '2024-03-13',
-        'title': 'Kardiyoloji - Chapter 2: EKG Okuma',
-        'type': 'Textbook',
-      },
-    ];
-
-    return Expanded(
-      child: ListView.builder(
-        itemCount: logs.length,
-        itemBuilder: (context, index) {
-          final log = logs[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              leading: Icon(
-                log['type'] == 'Textbook' ? Icons.book : Icons.description,
-                color: Colors.blue,
-              ),
-              title: Text(log['title']!),
-              subtitle: Text(
-                _formatDate(log['date']!),
-                style: const TextStyle(color: Colors.grey),
-              ),
-              trailing: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              child: ListTile(
+                leading: Icon(
+                  isTextbook ? Icons.book : Icons.description,
+                  color: isTextbook ? AppColors.primary : AppColors.tertiary,
+                  size: isSmallScreen ? 20 : 24,
                 ),
-                decoration: BoxDecoration(
-                  color: log['type'] == 'Textbook'
-                      ? Colors.blue.withOpacity(0.1)
-                      : Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${goal.bookTitle} - ${goal.chapterName}',
+                      style: AppTextStyles.bodyLarge(context).copyWith(
+                        fontSize: isSmallScreen ? 14 : 16,
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                    Text(
+                      goal.branch,
+                      style: AppTextStyles.bodyMedium(context).copyWith(
+                        fontSize: isSmallScreen ? 12 : 14,
+                        color: AppColors.secondaryText,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Text(
-                  log['type']!,
-                  style: TextStyle(
-                    color:
-                        log['type'] == 'Textbook' ? Colors.blue : Colors.green,
-                    fontWeight: FontWeight.bold,
+                subtitle: Text(
+                  _formatDate(goal.completedDate!),
+                  style: AppTextStyles.bodyMedium(context).copyWith(
+                    fontSize: isSmallScreen ? 12 : 14,
+                    color: AppColors.secondaryText,
+                  ),
+                ),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isTextbook
+                        ? AppColors.primary.withOpacity(0.1)
+                        : AppColors.tertiary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    goal.type,
+                    style: AppTextStyles.bodyMedium(context).copyWith(
+                      color:
+                          isTextbook ? AppColors.primary : AppColors.tertiary,
+                      fontSize: isSmallScreen ? 10 : 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _showFilterDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Filtreleme'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildFilterOption('Tümü'),
-              _buildFilterOption('Textbook'),
-              _buildFilterOption('Guideline'),
-              const Divider(),
-              _buildFilterOption('Bu Ay'),
-              _buildFilterOption('Bu Hafta'),
-              _buildFilterOption('Geçmiş'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Kapat'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildFilterOption(String title) {
-    return ListTile(
-      title: Text(title),
-      trailing: const Icon(Icons.check),
-      onTap: () {
-        // TODO: Implement filter logic
-      },
-    );
-  }
-
-  String _formatDate(String date) {
-    final DateTime dateTime = DateTime.parse(date);
-    return '${dateTime.day}.${dateTime.month}.${dateTime.year}';
+  String _formatDate(DateTime date) {
+    final DateFormat formatter = DateFormat('d MMMM y', 'tr_TR');
+    return formatter.format(date);
   }
 }

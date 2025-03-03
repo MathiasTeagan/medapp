@@ -7,7 +7,6 @@ import '../providers/goals_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/planned_readings_provider.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
 import '../theme/text_styles.dart';
 import 'what_to_read_screen.dart';
 import 'goals_screen.dart';
@@ -131,23 +130,36 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildMetricsGrid(BuildContext context, ThemeData theme, Size size,
       GoalsProvider goalsProvider) {
-    final completedGoals =
-        goalsProvider.goals.where((g) => g.isCompleted).length;
-    final activeGoals = goalsProvider.goals.where((g) => !g.isCompleted).length;
-    final monthlyReadings = 12;
     final isSmallScreen = size.width < 600;
+    final activeGoals = goalsProvider.goals.where((g) => !g.isCompleted).length;
+    final plannedReadings =
+        Provider.of<PlannedReadingsProvider>(context).plannedReadings.length;
+    final completedChapters =
+        goalsProvider.goals.where((g) => g.isCompleted).length;
 
     return Container(
-      height: isSmallScreen ? size.height * 0.12 : size.height * 0.1,
+      height: isSmallScreen ? size.height * 0.08 : size.height * 0.07,
       child: Row(
         children: [
           Expanded(
             child: _buildMetricCard(
               context,
               theme,
-              'Bu Ay',
-              monthlyReadings.toString(),
-              Icons.calendar_month,
+              'Hedef',
+              activeGoals.toString(),
+              Icons.flag,
+              AppColors.activeMetric,
+              size,
+            ),
+          ),
+          SizedBox(width: size.width * 0.02),
+          Expanded(
+            child: _buildMetricCard(
+              context,
+              theme,
+              'Planlanan',
+              plannedReadings.toString(),
+              Icons.calendar_today,
               AppColors.monthlyMetric,
               size,
             ),
@@ -158,21 +170,9 @@ class DashboardScreen extends StatelessWidget {
               context,
               theme,
               'Tamamlanan',
-              completedGoals.toString(),
+              completedChapters.toString(),
               Icons.task_alt,
               AppColors.completedMetric,
-              size,
-            ),
-          ),
-          SizedBox(width: size.width * 0.02),
-          Expanded(
-            child: _buildMetricCard(
-              context,
-              theme,
-              'Aktif',
-              activeGoals.toString(),
-              Icons.pending_actions,
-              AppColors.activeMetric,
               size,
             ),
           ),
@@ -199,7 +199,7 @@ class DashboardScreen extends StatelessWidget {
       ),
       padding: EdgeInsets.symmetric(
         horizontal: size.width * 0.02,
-        vertical: size.height * 0.01,
+        vertical: size.height * 0.005,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -210,7 +210,7 @@ class DashboardScreen extends StatelessWidget {
               Icon(
                 icon,
                 color: color,
-                size: isSmallScreen ? 16 : 20,
+                size: isSmallScreen ? 14 : 18,
               ),
               SizedBox(width: size.width * 0.01),
               Text(
@@ -218,7 +218,7 @@ class DashboardScreen extends StatelessWidget {
                 style: AppTextStyles.headlineMedium(context).copyWith(
                   color: color,
                   fontWeight: FontWeight.bold,
-                  fontSize: isSmallScreen ? 16 : 20,
+                  fontSize: isSmallScreen ? 14 : 18,
                 ),
               ),
             ],
@@ -228,7 +228,7 @@ class DashboardScreen extends StatelessWidget {
             style: AppTextStyles.bodyMedium(context).copyWith(
               color: color,
               fontWeight: FontWeight.w500,
-              fontSize: isSmallScreen ? 10 : 12,
+              fontSize: isSmallScreen ? 9 : 11,
             ),
             textAlign: TextAlign.center,
           ),
@@ -357,7 +357,22 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       SizedBox(height: size.height * 0.004),
                       Text(
-                        nextReading.chapter,
+                        nextReading.chapter.contains(' - ')
+                            ? nextReading.chapter.substring(
+                                0, nextReading.chapter.indexOf(' - '))
+                            : 'Kitap bilgisi yok',
+                        style: AppTextStyles.bodyMedium(context).copyWith(
+                          color: theme.colorScheme.primary,
+                          fontSize: isSmallScreen ? 12 : 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        nextReading.chapter.contains(' - ')
+                            ? nextReading.chapter.substring(
+                                nextReading.chapter.indexOf(' - ') + 3)
+                            : nextReading.chapter,
                         style: AppTextStyles.bodyMedium(context).copyWith(
                           color: theme.colorScheme.primary,
                           fontSize: isSmallScreen ? 12 : 14,
@@ -415,61 +430,63 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         SizedBox(height: size.height * 0.01),
-        Container(
-          height: isSmallScreen ? size.height * 0.06 : size.height * 0.08,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildQuickAccessButton(
-                theme,
-                'Ne Okusam?',
-                Icons.auto_stories,
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const WhatToReadScreen(),
-                  ),
-                ),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 2.5,
+          mainAxisSpacing: size.height * 0.01,
+          crossAxisSpacing: size.width * 0.02,
+          children: [
+            _buildQuickAccessButton(
+              theme,
+              'Ne Okusam?',
+              Icons.auto_stories,
+              () => Navigator.push(
                 context,
-              ),
-              _buildQuickAccessButton(
-                theme,
-                'Hedeflerim',
-                Icons.assignment,
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const GoalsScreen(),
-                  ),
+                MaterialPageRoute(
+                  builder: (context) => const WhatToReadScreen(),
                 ),
-                context,
               ),
-              _buildQuickAccessButton(
-                theme,
-                'Planlama',
-                Icons.calendar_today,
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PlanningScreen(),
-                  ),
+              context,
+            ),
+            _buildQuickAccessButton(
+              theme,
+              'Hedeflerim',
+              Icons.assignment,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const GoalsScreen(),
                 ),
-                context,
               ),
-              _buildQuickAccessButton(
-                theme,
-                'Logbook',
-                Icons.book,
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const LogbookScreen(),
-                  ),
+              context,
+            ),
+            _buildQuickAccessButton(
+              theme,
+              'Planlama',
+              Icons.calendar_today,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PlanningScreen(),
                 ),
-                context,
               ),
-            ],
-          ),
+              context,
+            ),
+            _buildQuickAccessButton(
+              theme,
+              'Logbook',
+              Icons.book,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LogbookScreen(),
+                ),
+              ),
+              context,
+            ),
+          ],
         ),
       ],
     );
@@ -485,38 +502,35 @@ class DashboardScreen extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 600;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: size.width * 0.01),
-      child: Material(
-        color: theme.colorScheme.primary.withOpacity(0.1),
+    return Material(
+      color: theme.colorScheme.primary.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: size.width * 0.04,
-              vertical: size.height * 0.01,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: size.width * 0.03,
+            vertical: size.height * 0.01,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: theme.colorScheme.primary,
+                size: isSmallScreen ? 20 : 24,
+              ),
+              SizedBox(width: size.width * 0.02),
+              Text(
+                title,
+                style: AppTextStyles.labelLarge(context).copyWith(
                   color: theme.colorScheme.primary,
-                  size: isSmallScreen ? 20 : 24,
+                  fontWeight: FontWeight.w500,
+                  fontSize: isSmallScreen ? 12 : 14,
                 ),
-                SizedBox(width: size.width * 0.02),
-                Text(
-                  title,
-                  style: AppTextStyles.labelLarge(context).copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                    fontSize: isSmallScreen ? 12 : 14,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
