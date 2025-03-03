@@ -47,6 +47,13 @@ class AppTextStyles {
     );
   }
 
+  static TextStyle bodySmall(BuildContext context) {
+    return TextStyle(
+      fontSize: MediaQuery.of(context).size.width * 0.015,
+      color: AppColors.secondaryText,
+    );
+  }
+
   static TextStyle titleLarge(BuildContext context) {
     return TextStyle(
       fontSize: MediaQuery.of(context).size.width * 0.035,
