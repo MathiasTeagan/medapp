@@ -37,31 +37,14 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   void _toggleChapterCompletion(String chapter) {
     final goals = context.read<GoalsProvider>().goals;
-    final goalToUpdate = goals.firstWhere(
-      (goal) => goal.bookTitle == widget.title && goal.chapterName == chapter,
-      orElse: () => Goal(
-        bookTitle: widget.title,
-        chapterName: chapter,
-        branch: widget.branch,
-        addedDate: DateTime.now(),
-        type: widget.type,
-        isCompleted: false,
-      ),
-    );
+    final existingGoal = goals
+        .where((goal) =>
+            goal.bookTitle == widget.title && goal.chapterName == chapter)
+        .firstOrNull;
 
-    if (goals.contains(goalToUpdate)) {
-      context.read<GoalsProvider>().toggleGoalCompletion(goalToUpdate);
-    } else {
-      final newGoal = Goal(
-        bookTitle: widget.title,
-        chapterName: chapter,
-        branch: widget.branch,
-        addedDate: DateTime.now(),
-        type: widget.type,
-        isCompleted: true,
-        completedDate: DateTime.now(),
-      );
-      context.read<GoalsProvider>().addGoal(newGoal);
+    if (existingGoal != null) {
+      // Eğer chapter zaten hedeflerdeyse, sadece tamamlanma durumunu güncelle
+      context.read<GoalsProvider>().toggleGoalCompletion(existingGoal);
     }
 
     setState(() {
