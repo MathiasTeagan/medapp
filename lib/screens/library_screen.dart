@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 import '../models/materials.dart';
 import '../dummy/materials_data.dart';
 import '../theme/app_colors.dart';
@@ -15,9 +17,22 @@ class LibraryScreen extends StatefulWidget {
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
-  String _selectedBranch = 'Kardiyoloji';
+  String? _selectedBranch;
   String _searchQuery = '';
   bool _showTextbooks = true; // true for textbooks, false for guidelines
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProvider = context.read<UserProvider>();
+      if (userProvider.specialty.isNotEmpty) {
+        setState(() {
+          _selectedBranch = userProvider.specialty;
+        });
+      }
+    });
+  }
 
   List<String> get _branches {
     final branches = MaterialsData.branches;
@@ -85,16 +100,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 );
               }).toList(),
               onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    _selectedBranch = newValue;
-                  });
-                }
+                setState(() {
+                  _selectedBranch = newValue;
+                });
               },
-              style: AppTextStyles.bodyLarge(context).copyWith(
-                color: AppColors.primary,
-                fontSize: isSmallScreen ? 14 : 16,
-                fontWeight: FontWeight.w500,
+              hint: Text(
+                'Branş seçiniz',
+                style: AppTextStyles.bodyLarge(context).copyWith(
+                  color: AppColors.primary.withOpacity(0.5),
+                  fontSize: isSmallScreen ? 14 : 16,
+                ),
               ),
             ),
           ),
@@ -169,56 +184,68 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
           const SizedBox(height: 16),
           // Materials List
-          Expanded(
-            child: ListView.builder(
-              itemCount: _showTextbooks
-                  ? Textbook.branchTextbooks[_selectedBranch]?.length ?? 0
-                  : Guideline.branchGuidelines[_selectedBranch]?.length ?? 0,
-              itemBuilder: (context, index) {
-                final materials = _showTextbooks
-                    ? Textbook.branchTextbooks[_selectedBranch] ?? []
-                    : Guideline.branchGuidelines[_selectedBranch] ?? [];
-                final material = materials[index];
+          if (_selectedBranch != null) // Only show list if a branch is selected
+            Expanded(
+              child: ListView.builder(
+                itemCount: _showTextbooks
+                    ? Textbook.branchTextbooks[_selectedBranch]?.length ?? 0
+                    : Guideline.branchGuidelines[_selectedBranch]?.length ?? 0,
+                itemBuilder: (context, index) {
+                  final materials = _showTextbooks
+                      ? Textbook.branchTextbooks[_selectedBranch] ?? []
+                      : Guideline.branchGuidelines[_selectedBranch] ?? [];
+                  final material = materials[index];
 
-                if (_searchQuery.isNotEmpty &&
-                    !material
-                        .toLowerCase()
-                        .contains(_searchQuery.toLowerCase())) {
-                  return const SizedBox.shrink();
-                }
+                  if (_searchQuery.isNotEmpty &&
+                      !material
+                          .toLowerCase()
+                          .contains(_searchQuery.toLowerCase())) {
+                    return const SizedBox.shrink();
+                  }
 
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    title: Text(
-                      material,
-                      style: AppTextStyles.titleMedium(context).copyWith(
-                        fontSize: isSmallScreen ? 16 : 18,
-                      ),
-                    ),
-                    trailing: Icon(
-                      _showTextbooks ? Icons.book : Icons.description,
-                      color: _showTextbooks
-                          ? AppColors.primary
-                          : AppColors.tertiary,
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BookDetailScreen(
-                            title: material,
-                            type: _showTextbooks ? 'Textbook' : 'Guideline',
-                            branch: _selectedBranch,
-                          ),
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: ListTile(
+                      title: Text(
+                        material,
+                        style: AppTextStyles.titleMedium(context).copyWith(
+                          fontSize: isSmallScreen ? 16 : 18,
                         ),
-                      );
-                    },
+                      ),
+                      trailing: Icon(
+                        _showTextbooks ? Icons.book : Icons.description,
+                        color: _showTextbooks
+                            ? AppColors.primary
+                            : AppColors.tertiary,
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BookDetailScreen(
+                              title: material,
+                              type: _showTextbooks ? 'Textbook' : 'Guideline',
+                              branch: _selectedBranch!,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            )
+          else
+            Expanded(
+              child: Center(
+                child: Text(
+                  'Lütfen bir branş seçiniz',
+                  style: AppTextStyles.titleMedium(context).copyWith(
+                    color: AppColors.primary.withOpacity(0.5),
                   ),
-                );
-              },
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
