@@ -21,9 +21,10 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
   String _selectedChapter = 'Tap to Spin!';
   bool _isSpinning = false;
   String? _selectedBranch;
-  final Random _random = Random();
+  final Random _random = Random.secure();
   final List<String> _animatingChapters = [];
   int _currentAnimatingIndex = 0;
+  String? _lastSelectedChapter;
 
   @override
   void initState() {
@@ -141,7 +142,13 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
           _isSpinning = false;
           final chapters = _allChapters;
           if (chapters.isNotEmpty) {
-            _selectedChapter = chapters[_random.nextInt(chapters.length)];
+            String newChapter;
+            do {
+              newChapter = chapters[_random.nextInt(chapters.length)];
+            } while (chapters.length > 1 && newChapter == _lastSelectedChapter);
+
+            _lastSelectedChapter = newChapter;
+            _selectedChapter = newChapter;
           }
         });
         _controller.reset();
@@ -179,11 +186,17 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
 
   void _spinWheel() {
     if (!_isSpinning && _selectedBranch != null) {
+      final chapters = _allChapters;
+      if (chapters.isEmpty) return;
+
       setState(() {
         _isSpinning = true;
         _lastUpdate = null;
         _animatingChapters.clear();
-        _animatingChapters.addAll(_allChapters);
+
+        final shuffledChapters = List<String>.from(chapters)..shuffle(_random);
+        _animatingChapters.addAll(shuffledChapters);
+
         _currentAnimatingIndex = 0;
       });
       _controller.forward(from: 0.0);
