@@ -1,8 +1,18 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
-
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import '../providers/goals_provider.dart';
+import 'package:provider/provider.dart';
+
+// Top-level fonksiyon olarak tanımlanmalı
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse notificationResponse) {
+  // Handle notification response
+  debugPrint(
+      'Notification tapped in background: ${notificationResponse.actionId}');
+}
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._();
@@ -26,12 +36,27 @@ class NotificationService {
         requestAlertPermission: true,
         requestBadgePermission: true,
         requestSoundPermission: true,
+        defaultPresentAlert: true,
+        defaultPresentBadge: true,
+        defaultPresentSound: true,
         notificationCategories: [
           DarwinNotificationCategory(
-            'daily_reading_check',
+            'daily_check',
             actions: [
-              DarwinNotificationAction.plain('MARK_AS_READ', 'Okudum'),
-              DarwinNotificationAction.plain('MARK_AS_NOT_READ', 'Okumadım'),
+              DarwinNotificationAction.plain(
+                'YES_ACTION',
+                'Evet',
+                options: {
+                  DarwinNotificationActionOption.foreground,
+                },
+              ),
+              DarwinNotificationAction.plain(
+                'NO_ACTION',
+                'Hayır',
+                options: {
+                  DarwinNotificationActionOption.foreground,
+                },
+              ),
             ],
             options: {
               DarwinNotificationCategoryOption.hiddenPreviewShowTitle,
@@ -53,7 +78,8 @@ class NotificationService {
 
       await _notifications.initialize(
         settings,
-        onDidReceiveNotificationResponse: _onNotificationTapped,
+        onDidReceiveNotificationResponse: _onNotificationResponse,
+        onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
       );
 
       _initialized = true;
@@ -73,8 +99,6 @@ class NotificationService {
               alert: true,
               badge: true,
               sound: true,
-              critical: true,
-              provisional: true,
             );
         debugPrint('iOS bildirim izni sonucu: $result');
         return result ?? false;
@@ -92,23 +116,41 @@ class NotificationService {
     }
   }
 
-  void _onNotificationTapped(NotificationResponse response) {
-    // Bildirime tıklandığında yapılacak işlemler
+  Future<void> _onNotificationResponse(NotificationResponse response) async {
+    if (response.payload != null) {
+      debugPrint('Notification payload: ${response.payload}');
+    }
+
+    switch (response.actionId) {
+      case 'YES_ACTION':
+        debugPrint('User tapped YES');
+        break;
+      case 'NO_ACTION':
+        debugPrint('User tapped NO');
+        break;
+    }
   }
 
   Future<void> scheduleDailyReadingCheck() async {
     const androidDetails = AndroidNotificationDetails(
-      'daily_reading_check',
+      'daily_check_channel',
       'Günlük Okuma Kontrolü',
-      channelDescription: 'Günlük chapter okuma durumunu kontrol eder',
-      importance: Importance.high,
+      channelDescription:
+          'Günlük okuma durumunu kontrol etmek için bildirimler',
+      importance: Importance.max,
       priority: Priority.high,
+      showWhen: true,
+      enableVibration: true,
+      category: AndroidNotificationCategory.reminder,
+      fullScreenIntent: true,
     );
 
     const iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      categoryIdentifier: 'daily_check',
+      interruptionLevel: InterruptionLevel.timeSensitive,
     );
 
     const details = NotificationDetails(
@@ -130,7 +172,7 @@ class NotificationService {
     }
 
     await _notifications.zonedSchedule(
-      1,
+      0,
       'Günlük Okuma Kontrolü',
       'Bugün bir chapter okudun mu?',
       tz.TZDateTime.from(scheduledDate, tz.local),
@@ -192,7 +234,7 @@ class NotificationService {
   }
 
   // Test için anlık bildirim gönderme
-  Future<void> showTestDailyReadingNotification() async {
+  Future<void> showTestNotification() async {
     try {
       if (!_initialized) {
         await initialize();
@@ -200,28 +242,34 @@ class NotificationService {
 
       debugPrint('Test bildirimi gönderiliyor...');
 
-      const androidDetails = AndroidNotificationDetails(
-        'daily_reading_check',
+      final androidDetails = AndroidNotificationDetails(
+        'daily_check_channel',
         'Günlük Okuma Kontrolü',
-        channelDescription: 'Günlük chapter okuma durumunu kontrol eder',
-        importance: Importance.high,
+        channelDescription:
+            'Günlük okuma durumunu kontrol etmek için bildirimler',
+        importance: Importance.max,
         priority: Priority.high,
+        showWhen: true,
+        enableVibration: true,
+        category: AndroidNotificationCategory.reminder,
+        fullScreenIntent: true,
       );
 
-      const iosDetails = DarwinNotificationDetails(
+      final iosDetails = DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
-        interruptionLevel: InterruptionLevel.active,
+        categoryIdentifier: 'daily_check',
+        interruptionLevel: InterruptionLevel.timeSensitive,
       );
 
-      const details = NotificationDetails(
+      final details = NotificationDetails(
         android: androidDetails,
         iOS: iosDetails,
       );
 
       await _notifications.show(
-        1,
+        0,
         'Günlük Okuma Kontrolü',
         'Bugün bir chapter okudun mu?',
         details,

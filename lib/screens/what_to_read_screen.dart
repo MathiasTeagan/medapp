@@ -24,7 +24,6 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
   final Random _random = Random.secure();
   List<String> _animatingChapters = [];
   int _currentAnimatingIndex = 0;
-  String? _lastSelectedChapter;
   List<String> _previousSelections = []; // Son seçimleri takip etmek için
 
   @override

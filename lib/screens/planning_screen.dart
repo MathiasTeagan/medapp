@@ -30,7 +30,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
           IconButton(
             icon: const Icon(Icons.notifications),
             onPressed: () {
-              NotificationService.instance.showTestDailyReadingNotification();
+              NotificationService.instance.showTestNotification();
             },
           ),
         ],
