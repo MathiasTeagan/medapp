@@ -22,9 +22,10 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
   bool _isSpinning = false;
   String? _selectedBranch;
   final Random _random = Random.secure();
-  final List<String> _animatingChapters = [];
+  List<String> _animatingChapters = [];
   int _currentAnimatingIndex = 0;
   String? _lastSelectedChapter;
+  List<String> _previousSelections = []; // Son seçimleri takip etmek için
 
   @override
   void initState() {
@@ -118,21 +119,40 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
     return Duration(milliseconds: milliseconds.toInt());
   }
 
-  void _updateAnimatingChapter() {
-    final chapters = _allChapters;
-    if (chapters.isNotEmpty) {
-      setState(() {
-        _currentAnimatingIndex = (_currentAnimatingIndex + 1) % chapters.length;
-      });
+  String _getRandomChapter(List<String> chapters) {
+    if (chapters.isEmpty) return '';
+    if (chapters.length == 1) return chapters[0];
+
+    // Son 3 seçimi takip et
+    final availableChapters = chapters
+        .where((chapter) => !_previousSelections.contains(chapter))
+        .toList();
+
+    // Eğer tüm chapter'lar seçildiyse listeyi sıfırla
+    if (availableChapters.isEmpty) {
+      _previousSelections.clear();
+      return chapters[_random.nextInt(chapters.length)];
     }
+
+    final selectedChapter =
+        availableChapters[_random.nextInt(availableChapters.length)];
+    _previousSelections.add(selectedChapter);
+
+    // Son 3 seçimi tut
+    if (_previousSelections.length > 3) {
+      _previousSelections.removeAt(0);
+    }
+
+    return selectedChapter;
   }
 
-  String _getChapterAt(int index) {
-    final chapters = _allChapters;
-    if (chapters.isEmpty) return '';
+  void _updateAnimatingChapter() {
+    if (_animatingChapters.isEmpty) return;
 
-    final normalizedIndex = index % chapters.length;
-    return chapters[normalizedIndex];
+    setState(() {
+      _currentAnimatingIndex =
+          (_currentAnimatingIndex + 1) % _animatingChapters.length;
+    });
   }
 
   void _onAnimationStatusChanged(AnimationStatus status) {
@@ -142,13 +162,7 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
           _isSpinning = false;
           final chapters = _allChapters;
           if (chapters.isNotEmpty) {
-            String newChapter;
-            do {
-              newChapter = chapters[_random.nextInt(chapters.length)];
-            } while (chapters.length > 1 && newChapter == _lastSelectedChapter);
-
-            _lastSelectedChapter = newChapter;
-            _selectedChapter = newChapter;
+            _selectedChapter = _getRandomChapter(chapters);
           }
         });
         _controller.reset();
@@ -192,10 +206,15 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
       setState(() {
         _isSpinning = true;
         _lastUpdate = null;
-        _animatingChapters.clear();
 
-        final shuffledChapters = List<String>.from(chapters)..shuffle(_random);
-        _animatingChapters.addAll(shuffledChapters);
+        // Animasyon için chapter'ları karıştır
+        _animatingChapters = List<String>.from(chapters);
+        for (var i = _animatingChapters.length - 1; i > 0; i--) {
+          var j = _random.nextInt(i + 1);
+          var temp = _animatingChapters[i];
+          _animatingChapters[i] = _animatingChapters[j];
+          _animatingChapters[j] = temp;
+        }
 
         _currentAnimatingIndex = 0;
       });
@@ -475,5 +494,17 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
         ),
       ),
     );
+  }
+
+  String _getChapterAt(int index) {
+    if (_animatingChapters.isEmpty) return '';
+
+    // Animasyon sırasında sürekli dönen bir liste efekti için
+    final effectiveIndex = index % _animatingChapters.length;
+    final normalizedIndex =
+        ((_currentAnimatingIndex + effectiveIndex) % _animatingChapters.length +
+                _animatingChapters.length) %
+            _animatingChapters.length;
+    return _animatingChapters[normalizedIndex];
   }
 }

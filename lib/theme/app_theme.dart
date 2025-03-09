@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
@@ -43,8 +45,8 @@ class AppTheme {
         backgroundColor: Colors.white,
         elevation: 8,
         indicatorColor: AppColors.primary.withOpacity(0.1),
-        labelTextStyle: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return TextStyle(
               color: AppColors.primary,
               fontSize: 12,

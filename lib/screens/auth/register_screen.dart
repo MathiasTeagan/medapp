@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
-import '../../theme/text_styles.dart';
 import '../../dummy/materials_data.dart';
 
 class RegisterScreen extends StatefulWidget {
