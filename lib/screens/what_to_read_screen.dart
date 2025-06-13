@@ -15,101 +15,104 @@ class WhatToReadScreen extends StatefulWidget {
 }
 
 class _WhatToReadScreenState extends State<WhatToReadScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-  String _selectedChapter = 'Tap to Spin!';
+    with TickerProviderStateMixin {
+  late AnimationController _spinnerController;
+  late Animation<double> _spinnerAnimation;
+
+  String _selectedMaterial = '';
+  String _selectedChapter = '';
   bool _isSpinning = false;
   String? _selectedBranch;
   final Random _random = Random.secure();
-  List<String> _animatingChapters = [];
-  int _currentAnimatingIndex = 0;
-  List<String> _previousSelections = []; // Son seçimleri takip etmek için
+  List<String> _animatingItems = [];
+  int _currentIndex = 0;
+  List<String> _previousSelections = [];
+  Map<String, bool> _selectedMaterials = {};
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 4000),
+    _spinnerController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
       vsync: this,
     );
 
-    _animation = CurvedAnimation(
-      parent: _controller,
+    _spinnerAnimation = CurvedAnimation(
+      parent: _spinnerController,
       curve: Curves.easeOutExpo,
     );
 
-    _controller.addListener(() {
-      if (_isSpinning) {
-        final progress = _controller.value;
-        final updateInterval = _calculateUpdateInterval(progress);
+    _spinnerController.addListener(_onSpinnerAnimationTick);
+    _spinnerController.addStatusListener(_onSpinnerAnimationStatusChanged);
 
-        if (_lastUpdate == null ||
-            DateTime.now().difference(_lastUpdate!) > updateInterval) {
-          _updateAnimatingChapter();
-          _lastUpdate = DateTime.now();
-        }
-      }
-    });
-
-    _controller.addStatusListener(_onAnimationStatusChanged);
-
-    // Kullanıcının branşını kontrol et
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userProvider = context.read<UserProvider>();
       if (userProvider.specialty.isNotEmpty) {
         setState(() {
           _selectedBranch = userProvider.specialty;
+          _updateSelectedMaterials();
         });
       }
     });
   }
 
-  List<String> get _branches => MaterialsData.branches;
+  void _updateSelectedMaterials() {
+    if (_selectedBranch == null) return;
 
-  Map<String, List<String>> get _branchChapters {
-    if (_selectedBranch == null) return {};
+    final materials = <String>[];
+    materials.addAll(MaterialsData.branchTextbooks[_selectedBranch] ?? []);
+    materials.addAll(MaterialsData.branchGuidelines[_selectedBranch] ?? []);
 
-    final allChapters = <String, List<String>>{};
-
-    // Textbook chapters
-    for (final textbook
-        in MaterialsData.branchTextbooks[_selectedBranch] ?? []) {
-      final chapters = MaterialsData.textbookChapters[textbook] ?? [];
-      for (final chapter in chapters) {
-        allChapters[textbook] = [
-          ...?allChapters[textbook],
-          '$textbook - $chapter'
-        ];
+    for (final material in materials) {
+      if (!_selectedMaterials.containsKey(material)) {
+        _selectedMaterials[material] = true;
       }
     }
-
-    // Guideline chapters
-    for (final guideline
-        in MaterialsData.branchGuidelines[_selectedBranch] ?? []) {
-      final chapters = MaterialsData.guidelineChapters[guideline] ?? [];
-      for (final chapter in chapters) {
-        allChapters[guideline] = [
-          ...?allChapters[guideline],
-          '$guideline - $chapter'
-        ];
-      }
-    }
-
-    return allChapters;
   }
 
-  List<String> get _allChapters {
-    return _branchChapters.values.expand((chapters) => chapters).toList();
+  void _updateMaterialSelection(String material, bool? value) {
+    setState(() {
+      _selectedMaterials[material] = value ?? true;
+    });
+    if (_overlayEntry != null) {
+      _hideMaterialsOverlay();
+      _showMaterialsOverlay();
+    }
+  }
+
+  List<String> get _branches => MaterialsData.branches;
+
+  List<String> get _allItems {
+    if (_selectedBranch == null) return [];
+
+    final items = <String>[];
+    final materials = <String>[];
+    materials.addAll(MaterialsData.branchTextbooks[_selectedBranch] ?? []);
+    materials.addAll(MaterialsData.branchGuidelines[_selectedBranch] ?? []);
+
+    for (final material in materials) {
+      if (_selectedMaterials[material] == true) {
+        final chapters = MaterialsData.textbookChapters.containsKey(material)
+            ? MaterialsData.textbookChapters[material] ?? []
+            : MaterialsData.guidelineChapters[material] ?? [];
+
+        for (final chapter in chapters) {
+          items.add('$material - $chapter');
+        }
+      }
+    }
+    return items;
   }
 
   DateTime? _lastUpdate;
 
   @override
   void dispose() {
-    _controller.removeStatusListener(_onAnimationStatusChanged);
-    _controller.stop();
-    _controller.dispose();
+    _hideMaterialsOverlay();
+    _spinnerController.removeListener(_onSpinnerAnimationTick);
+    _spinnerController.dispose();
     super.dispose();
   }
 
@@ -118,66 +121,65 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
     return Duration(milliseconds: milliseconds.toInt());
   }
 
-  String _getRandomChapter(List<String> chapters) {
-    if (chapters.isEmpty) return '';
-    if (chapters.length == 1) return chapters[0];
+  void _onSpinnerAnimationTick() {
+    if (_isSpinning) {
+      final progress = _spinnerController.value;
+      final updateInterval = _calculateUpdateInterval(progress);
 
-    // Son 3 seçimi takip et
-    final availableChapters = chapters
-        .where((chapter) => !_previousSelections.contains(chapter))
-        .toList();
-
-    // Eğer tüm chapter'lar seçildiyse listeyi sıfırla
-    if (availableChapters.isEmpty) {
-      _previousSelections.clear();
-      return chapters[_random.nextInt(chapters.length)];
-    }
-
-    final selectedChapter =
-        availableChapters[_random.nextInt(availableChapters.length)];
-    _previousSelections.add(selectedChapter);
-
-    // Son 3 seçimi tut
-    if (_previousSelections.length > 3) {
-      _previousSelections.removeAt(0);
-    }
-
-    return selectedChapter;
-  }
-
-  void _updateAnimatingChapter() {
-    if (_animatingChapters.isEmpty) return;
-
-    setState(() {
-      _currentAnimatingIndex =
-          (_currentAnimatingIndex + 1) % _animatingChapters.length;
-    });
-  }
-
-  void _onAnimationStatusChanged(AnimationStatus status) {
-    if (status == AnimationStatus.completed) {
-      if (mounted) {
-        setState(() {
-          _isSpinning = false;
-          final chapters = _allChapters;
-          if (chapters.isNotEmpty) {
-            _selectedChapter = _getRandomChapter(chapters);
-          }
-        });
-        _controller.reset();
+      if (_lastUpdate == null ||
+          DateTime.now().difference(_lastUpdate!) > updateInterval) {
+        _updateAnimatingItem();
+        _lastUpdate = DateTime.now();
       }
     }
   }
 
-  void _handleBack() {
-    if (_isSpinning) {
-      _controller.stop();
-      _controller.reset();
-      setState(() {
-        _isSpinning = false;
-      });
+  String _getRandomItem(List<String> items) {
+    if (items.isEmpty) return '';
+    if (items.length == 1) return items[0];
+
+    final availableItems =
+        items.where((item) => !_previousSelections.contains(item)).toList();
+
+    if (availableItems.isEmpty) {
+      _previousSelections.clear();
+      return items[_random.nextInt(items.length)];
     }
-    Navigator.of(context).pop();
+
+    final selectedItem = availableItems[_random.nextInt(availableItems.length)];
+    _previousSelections.add(selectedItem);
+
+    if (_previousSelections.length > 3) {
+      _previousSelections.removeAt(0);
+    }
+
+    return selectedItem;
+  }
+
+  void _updateAnimatingItem() {
+    if (_animatingItems.isEmpty) return;
+    setState(() {
+      _currentIndex = (_currentIndex + 1) % _animatingItems.length;
+    });
+  }
+
+  void _onSpinnerAnimationStatusChanged(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      if (mounted) {
+        setState(() {
+          _isSpinning = false;
+          final items = _allItems;
+          if (items.isNotEmpty) {
+            final selectedItem = _getRandomItem(items);
+            final parts = selectedItem.split(' - ');
+            if (parts.length == 2) {
+              _selectedMaterial = parts[0];
+              _selectedChapter = parts[1];
+            }
+          }
+        });
+      }
+    }
   }
 
   void _showSuccessSnackBar(BuildContext context) {
@@ -199,26 +201,151 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
 
   void _spinWheel() {
     if (!_isSpinning && _selectedBranch != null) {
-      final chapters = _allChapters;
-      if (chapters.isEmpty) return;
+      final items = _allItems;
+      if (items.isEmpty) return;
 
       setState(() {
         _isSpinning = true;
         _lastUpdate = null;
 
-        // Animasyon için chapter'ları karıştır
-        _animatingChapters = List<String>.from(chapters);
-        for (var i = _animatingChapters.length - 1; i > 0; i--) {
+        _animatingItems = List<String>.from(items);
+        for (var i = _animatingItems.length - 1; i > 0; i--) {
           var j = _random.nextInt(i + 1);
-          var temp = _animatingChapters[i];
-          _animatingChapters[i] = _animatingChapters[j];
-          _animatingChapters[j] = temp;
+          var temp = _animatingItems[i];
+          _animatingItems[i] = _animatingItems[j];
+          _animatingItems[j] = temp;
         }
 
-        _currentAnimatingIndex = 0;
+        _currentIndex = 0;
+        _selectedMaterial = '';
+        _selectedChapter = '';
       });
-      _controller.forward(from: 0.0);
+
+      _spinnerController.forward(from: 0.0);
     }
+  }
+
+  void _showMaterialsOverlay() {
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideMaterialsOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    final renderBox = context.findRenderObject() as RenderBox;
+    final size = renderBox.size;
+
+    return OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _hideMaterialsOverlay,
+              child: Container(
+                color: Colors.transparent,
+              ),
+            ),
+          ),
+          Positioned(
+            width: size.width * 0.9,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: const Offset(0, 60),
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        height: 200,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              if (MaterialsData.branchTextbooks[_selectedBranch]
+                                      ?.isNotEmpty ??
+                                  false) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  child: Text(
+                                    'Textbooklar',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ),
+                                ...(MaterialsData
+                                            .branchTextbooks[_selectedBranch] ??
+                                        [])
+                                    .map(
+                                  (material) => CheckboxListTile(
+                                    title: Text(material),
+                                    value: _selectedMaterials[material] ?? true,
+                                    onChanged: (bool? value) =>
+                                        _updateMaterialSelection(
+                                            material, value),
+                                    dense: true,
+                                  ),
+                                ),
+                              ],
+                              if (MaterialsData
+                                      .branchGuidelines[_selectedBranch]
+                                      ?.isNotEmpty ??
+                                  false) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  child: Text(
+                                    'Guidelinelar',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ),
+                                ...(MaterialsData.branchGuidelines[
+                                            _selectedBranch] ??
+                                        [])
+                                    .map(
+                                  (material) => CheckboxListTile(
+                                    title: Text(material),
+                                    value: _selectedMaterials[material] ?? true,
+                                    onChanged: (bool? value) =>
+                                        _updateMaterialSelection(
+                                            material, value),
+                                    dense: true,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -248,148 +375,174 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade300),
               ),
-              child: DropdownButtonFormField<String>(
-                value: _selectedBranch,
-                decoration: const InputDecoration(
-                  labelText: 'Branş Seçiniz',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedBranch,
+                  isExpanded: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  borderRadius: BorderRadius.circular(12),
+                  hint: const Text('Branş seçiniz'),
+                  items: _branches.map((String branch) {
+                    return DropdownMenuItem<String>(
+                      value: branch,
+                      child: Text(branch),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedBranch = newValue;
+                      _updateSelectedMaterials();
+                    });
+                  },
                 ),
-                items: _branches.map((String branch) {
-                  return DropdownMenuItem(
-                    value: branch,
-                    child: Text(branch),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedBranch = newValue;
-                    _selectedChapter = 'Tap to Spin!';
-                  });
-                },
-                hint: const Text('Branş seçiniz'),
               ),
             ),
+            if (_selectedBranch != null) ...[
+              const SizedBox(height: 16),
+              CompositedTransformTarget(
+                link: _layerLink,
+                child: InkWell(
+                  onTap: () {
+                    if (_overlayEntry == null) {
+                      _showMaterialsOverlay();
+                    } else {
+                      _hideMaterialsOverlay();
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Materyaller',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        Icon(
+                          _overlayEntry == null
+                              ? Icons.keyboard_arrow_down
+                              : Icons.keyboard_arrow_up,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 40),
             if (_selectedBranch != null) ...[
               Expanded(
                 child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AnimatedBuilder(
-                        animation: _animation,
-                        builder: (context, child) {
-                          return Container(
-                            height: size.height * 0.25,
-                            width: size.width * 0.85,
-                            margin: EdgeInsets.symmetric(
-                                vertical: size.height * 0.01),
-                            padding: EdgeInsets.symmetric(
-                              vertical: size.height * 0.01,
-                              horizontal: size.width * 0.02,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.blue.withOpacity(0.1),
-                                  Colors.blue.shade50,
-                                  Colors.blue.shade100,
-                                  Colors.blue.shade50,
-                                  Colors.blue.withOpacity(0.1),
-                                ],
-                              ),
-                              border: Border.all(color: Colors.blue, width: 2),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.blue.withOpacity(0.2),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ShaderMask(
-                              shaderCallback: (Rect bounds) {
-                                return const LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.black,
-                                    Colors.black,
-                                    Colors.black,
-                                    Colors.transparent,
-                                  ],
-                                  stops: [0.0, 0.2, 0.4, 0.8, 1.0],
-                                ).createShader(bounds);
-                              },
-                              blendMode: BlendMode.dstIn,
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  _buildSpinnerItem(
-                                    _getChapterAt(_currentAnimatingIndex - 2),
-                                    false,
-                                    size,
-                                    isSmallScreen,
-                                  ),
-                                  _buildSpinnerItem(
-                                    _getChapterAt(_currentAnimatingIndex - 1),
-                                    false,
-                                    size,
-                                    isSmallScreen,
-                                  ),
-                                  _buildSpinnerItem(
-                                    _getChapterAt(_currentAnimatingIndex),
-                                    true,
-                                    size,
-                                    isSmallScreen,
-                                  ),
-                                  _buildSpinnerItem(
-                                    _getChapterAt(_currentAnimatingIndex + 1),
-                                    false,
-                                    size,
-                                    isSmallScreen,
-                                  ),
-                                  _buildSpinnerItem(
-                                    _getChapterAt(_currentAnimatingIndex + 2),
-                                    false,
-                                    size,
-                                    isSmallScreen,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                  child: Container(
+                    height: size.height * 0.3,
+                    width: size.width * 0.9,
+                    margin: EdgeInsets.symmetric(
+                        horizontal: size.width * 0.02,
+                        vertical: size.height * 0.01),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.blue.withOpacity(0.1),
+                          Colors.blue.shade50,
+                          Colors.blue.shade100,
+                          Colors.blue.shade50,
+                          Colors.blue.withOpacity(0.1),
+                        ],
                       ),
-                    ],
+                      border: Border.all(color: Colors.blue, width: 2),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ShaderMask(
+                      shaderCallback: (Rect bounds) {
+                        return const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black,
+                            Colors.black,
+                            Colors.black,
+                            Colors.transparent,
+                          ],
+                          stops: [0.0, 0.2, 0.4, 0.8, 1.0],
+                        ).createShader(bounds);
+                      },
+                      blendMode: BlendMode.dstIn,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildSpinnerItem(
+                            _getItemAt(_currentIndex - 2),
+                            false,
+                            size,
+                            isSmallScreen,
+                          ),
+                          _buildSpinnerItem(
+                            _getItemAt(_currentIndex - 1),
+                            false,
+                            size,
+                            isSmallScreen,
+                          ),
+                          _buildSpinnerItem(
+                            _getItemAt(_currentIndex),
+                            true,
+                            size,
+                            isSmallScreen,
+                          ),
+                          _buildSpinnerItem(
+                            _getItemAt(_currentIndex + 1),
+                            false,
+                            size,
+                            isSmallScreen,
+                          ),
+                          _buildSpinnerItem(
+                            _getItemAt(_currentIndex + 2),
+                            false,
+                            size,
+                            isSmallScreen,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              if (!_isSpinning && _selectedChapter != 'Tap to Spin!')
+              if (!_isSpinning &&
+                  _selectedMaterial.isNotEmpty &&
+                  _selectedChapter.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 80),
                   child: FilledButton.icon(
                     onPressed: () {
-                      final parts = _selectedChapter.split(' - ');
                       final goal = Goal(
-                        bookTitle: parts[0],
-                        chapterName: parts[1],
+                        bookTitle: _selectedMaterial,
+                        chapterName: _selectedChapter,
                         branch: _selectedBranch!,
                         addedDate: DateTime.now(),
-                        type:
-                            MaterialsData.textbookChapters.containsKey(parts[0])
-                                ? 'Textbook'
-                                : 'Guideline',
+                        type: MaterialsData.textbookChapters
+                                .containsKey(_selectedMaterial)
+                            ? 'Textbook'
+                            : 'Guideline',
                         isCompleted: false,
                       );
                       context.read<GoalsProvider>().addGoal(goal);
@@ -427,7 +580,7 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
                     minimumSize: const Size.fromHeight(60),
                   ),
                   icon: AnimatedRotation(
-                    turns: _animation.value * 10,
+                    turns: _spinnerAnimation.value * 10,
                     duration: const Duration(milliseconds: 100),
                     child: Icon(
                       Icons.refresh,
@@ -468,14 +621,14 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
       String text, bool isSelected, Size size, bool isSmallScreen) {
     return Container(
       height: size.height * 0.04,
-      width: size.width * 0.8,
       margin: EdgeInsets.symmetric(vertical: size.height * 0.002),
       decoration: BoxDecoration(
-        color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+        color: isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent,
         border: isSelected
             ? Border(
-                top: BorderSide(color: Colors.blue.shade200, width: 2),
-                bottom: BorderSide(color: Colors.blue.shade200, width: 2),
+                top: BorderSide(color: Colors.white.withOpacity(0.3), width: 2),
+                bottom:
+                    BorderSide(color: Colors.white.withOpacity(0.3), width: 2),
               )
             : null,
       ),
@@ -495,15 +648,13 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
     );
   }
 
-  String _getChapterAt(int index) {
-    if (_animatingChapters.isEmpty) return '';
-
-    // Animasyon sırasında sürekli dönen bir liste efekti için
-    final effectiveIndex = index % _animatingChapters.length;
+  String _getItemAt(int index) {
+    if (_animatingItems.isEmpty) return '';
+    final effectiveIndex = index % _animatingItems.length;
     final normalizedIndex =
-        ((_currentAnimatingIndex + effectiveIndex) % _animatingChapters.length +
-                _animatingChapters.length) %
-            _animatingChapters.length;
-    return _animatingChapters[normalizedIndex];
+        ((_currentIndex + effectiveIndex) % _animatingItems.length +
+                _animatingItems.length) %
+            _animatingItems.length;
+    return _animatingItems[normalizedIndex];
   }
 }
