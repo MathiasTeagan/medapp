@@ -5,6 +5,9 @@ import 'auth/login_screen.dart';
 import 'dashboard_screen.dart';
 import 'library_screen.dart';
 import 'performance_screen.dart';
+import 'planning_screen.dart';
+import 'logbook_screen.dart';
+import 'what_to_read_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -19,6 +22,9 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const LibraryScreen(),
+    const WhatToReadScreen(),
+    const PlanningScreen(),
+    const LogbookScreen(),
     const PerformanceScreen(),
   ];
 
@@ -81,7 +87,13 @@ class _MainScreenState extends State<MainScreen> {
             ? 'Dashboard'
             : _selectedIndex == 1
                 ? 'Kütüphane'
-                : 'Performans'),
+                : _selectedIndex == 2
+                    ? 'Bugün Ne Okusam?'
+                    : _selectedIndex == 3
+                        ? 'Planlama'
+                        : _selectedIndex == 4
+                            ? 'Logbook'
+                            : 'Performans'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -106,6 +118,18 @@ class _MainScreenState extends State<MainScreen> {
           NavigationDestination(
             icon: Icon(Icons.library_books),
             label: 'Kütüphane',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.auto_stories),
+            label: 'Bugün Ne Okusam?',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_today),
+            label: 'Planlama',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.book),
+            label: 'Logbook',
           ),
           NavigationDestination(
             icon: Icon(Icons.bar_chart),
