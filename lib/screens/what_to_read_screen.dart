@@ -6,6 +6,10 @@ import '../models/goal.dart';
 import '../providers/goals_provider.dart';
 import '../providers/user_provider.dart';
 import '../dummy/materials_data.dart';
+import '../theme/app_colors.dart';
+import '../theme/text_styles.dart';
+import '../widgets/branch_selector.dart';
+import '../theme/app_theme.dart';
 
 class WhatToReadScreen extends StatefulWidget {
   const WhatToReadScreen({super.key});
@@ -366,36 +370,17 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
         ),
       ),
       body: Padding(
-        padding: EdgeInsets.all(size.width * 0.04),
+        padding: AppTheme.screenPadding(context),
         child: Column(
           children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedBranch,
-                  isExpanded: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  borderRadius: BorderRadius.circular(12),
-                  hint: const Text('Branş seçiniz'),
-                  items: _branches.map((String branch) {
-                    return DropdownMenuItem<String>(
-                      value: branch,
-                      child: Text(branch),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedBranch = newValue;
-                      _updateSelectedMaterials();
-                    });
-                  },
-                ),
-              ),
+            BranchSelector(
+              selectedBranch: _selectedBranch,
+              onBranchSelected: (String? newValue) {
+                setState(() {
+                  _selectedBranch = newValue;
+                  _updateSelectedMaterials();
+                });
+              },
             ),
             if (_selectedBranch != null) ...[
               const SizedBox(height: 16),
@@ -421,10 +406,9 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
                       children: [
                         Text(
                           'Materyaller',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
+                          style: AppTextStyles.bodyLarge(context).copyWith(
+                            color: AppColors.primary,
+                            fontSize: isSmallScreen ? 16 : 18,
                           ),
                         ),
                         Icon(

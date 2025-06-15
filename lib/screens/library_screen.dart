@@ -7,6 +7,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../theme/text_styles.dart';
 import '../theme/tab_bar_styles.dart';
+import '../widgets/branch_selector.dart';
 import 'book_detail_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
@@ -50,68 +51,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
       child: Column(
         children: [
           // Branch Selection Dropdown
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: DropdownButtonFormField<String>(
-              value: _selectedBranch,
-              dropdownColor: AppColors.surface,
-              menuMaxHeight: MediaQuery.of(context).size.height * 0.4,
-              decoration: InputDecoration(
-                labelText: 'Branş Seçiniz',
-                labelStyle: AppTextStyles.titleMedium(context).copyWith(
-                  color: AppColors.primary,
-                  fontSize: isSmallScreen ? 16 : 18,
-                ),
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  borderSide: BorderSide(color: AppColors.primary, width: 2),
-                ),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: size.width * 0.04,
-                  vertical: size.height * 0.02,
-                ),
-              ),
-              icon: Icon(
-                Icons.arrow_drop_down_circle,
-                color: AppColors.primary,
-              ),
-              items: _branches.map((String branch) {
-                return DropdownMenuItem(
-                  value: branch,
-                  child: Text(
-                    branch,
-                    style: AppTextStyles.bodyLarge(context).copyWith(
-                      color: AppColors.primary,
-                      fontSize: isSmallScreen ? 14 : 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedBranch = newValue;
-                });
-              },
-              hint: Text(
-                'Branş seçiniz',
-                style: AppTextStyles.bodyLarge(context).copyWith(
-                  color: AppColors.primary.withOpacity(0.5),
-                  fontSize: isSmallScreen ? 14 : 16,
-                ),
-              ),
-            ),
+          BranchSelector(
+            selectedBranch: _selectedBranch,
+            onBranchSelected: (String? newValue) {
+              setState(() {
+                _selectedBranch = newValue;
+              });
+            },
           ),
           const SizedBox(height: 16),
           // Search Bar
