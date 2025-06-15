@@ -77,7 +77,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              style: AppTextStyles.bodyLarge(context),
+              style: AppTextStyles.titleMedium(context).copyWith(
+                color: AppColors.primaryText,
+              ),
               onChanged: (value) {
                 setState(() {
                   _searchQuery = value;
