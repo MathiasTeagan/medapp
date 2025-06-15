@@ -26,14 +26,6 @@ class _PlanningScreenState extends State<PlanningScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Planlama'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              NotificationService.instance.showTestNotification();
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [

@@ -242,6 +242,7 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
   OverlayEntry _createOverlayEntry() {
     final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return OverlayEntry(
       builder: (context) => Stack(
@@ -269,79 +270,89 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade300),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        height: 200,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            children: [
-                              if (MaterialsData.branchTextbooks[_selectedBranch]
-                                      ?.isNotEmpty ??
-                                  false) ...[
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  child: Text(
-                                    'Textbooklar',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.grey.shade700,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            constraints: BoxConstraints(
+                              maxHeight: screenHeight * 0.5,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (MaterialsData
+                                          .branchTextbooks[_selectedBranch]
+                                          ?.isNotEmpty ??
+                                      false) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                      child: Text(
+                                        'Textbooklar',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                ...(MaterialsData
-                                            .branchTextbooks[_selectedBranch] ??
-                                        [])
-                                    .map(
-                                  (material) => CheckboxListTile(
-                                    title: Text(material),
-                                    value: _selectedMaterials[material] ?? true,
-                                    onChanged: (bool? value) =>
-                                        _updateMaterialSelection(
-                                            material, value),
-                                    dense: true,
-                                  ),
-                                ),
-                              ],
-                              if (MaterialsData
-                                      .branchGuidelines[_selectedBranch]
-                                      ?.isNotEmpty ??
-                                  false) ...[
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  child: Text(
-                                    'Guidelinelar',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.grey.shade700,
+                                    ...(MaterialsData.branchTextbooks[
+                                                _selectedBranch] ??
+                                            [])
+                                        .map(
+                                      (material) => CheckboxListTile(
+                                        title: Text(material),
+                                        value: _selectedMaterials[material] ??
+                                            true,
+                                        onChanged: (bool? value) =>
+                                            _updateMaterialSelection(
+                                                material, value),
+                                        dense: true,
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                ...(MaterialsData.branchGuidelines[
-                                            _selectedBranch] ??
-                                        [])
-                                    .map(
-                                  (material) => CheckboxListTile(
-                                    title: Text(material),
-                                    value: _selectedMaterials[material] ?? true,
-                                    onChanged: (bool? value) =>
-                                        _updateMaterialSelection(
-                                            material, value),
-                                    dense: true,
-                                  ),
-                                ),
-                              ],
-                            ],
+                                  ],
+                                  if (MaterialsData
+                                          .branchGuidelines[_selectedBranch]
+                                          ?.isNotEmpty ??
+                                      false) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                      child: Text(
+                                        'Guidelinelar',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                    ...(MaterialsData.branchGuidelines[
+                                                _selectedBranch] ??
+                                            [])
+                                        .map(
+                                      (material) => CheckboxListTile(
+                                        title: Text(material),
+                                        value: _selectedMaterials[material] ??
+                                            true,
+                                        onChanged: (bool? value) =>
+                                            _updateMaterialSelection(
+                                                material, value),
+                                        dense: true,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -359,15 +370,7 @@ class _WhatToReadScreenState extends State<WhatToReadScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ne Okusam?'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (!_isSpinning) {
-              Navigator.of(context).pop();
-            }
-          },
-        ),
+        title: const Text('Bugün Ne Okusam?'),
       ),
       body: Padding(
         padding: AppTheme.screenPadding(context),

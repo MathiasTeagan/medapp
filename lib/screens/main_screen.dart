@@ -82,26 +82,6 @@ class _MainScreenState extends State<MainScreen> {
     final isSmallScreen = screenSize.width < 600;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_selectedIndex == 0
-            ? 'Dashboard'
-            : _selectedIndex == 1
-                ? 'Kütüphane'
-                : _selectedIndex == 2
-                    ? 'Bugün Ne Okusam?'
-                    : _selectedIndex == 3
-                        ? 'Planlama'
-                        : _selectedIndex == 4
-                            ? 'Logbook'
-                            : 'Performans'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _handleLogout(context),
-            tooltip: 'Çıkış Yap',
-          ),
-        ],
-      ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,

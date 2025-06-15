@@ -16,144 +16,149 @@ class PerformanceScreen extends StatelessWidget {
     final completionRate = goals.isEmpty ? 0.0 : completedGoals / goals.length;
     final currentStreak = _calculateCurrentStreak();
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(size.width * 0.04),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Streak Card
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blue.shade400, Colors.blue.shade700],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Performans'),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(size.width * 0.04),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Streak Card
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.local_fire_department,
-                        color: Colors.orange.shade400,
-                        size: 32,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$currentStreak Gün',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade400, Colors.blue.shade700],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.local_fire_department,
+                          color: Colors.orange.shade400,
+                          size: 32,
                         ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$currentStreak Gün',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Kesintisiz Okuma',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Kesintisiz Okuma',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-          // Weekly Performance
-          Text(
-            'Haftalık Performans',
-            style: AppTextStyles.titleLarge(context),
-          ),
-          const SizedBox(height: 12),
-          _buildWeeklyPerformance('Geçen Hafta', _getPreviousWeekDays()),
-          const SizedBox(height: 16),
-          _buildWeeklyPerformance('Bu Hafta', _getCurrentWeekDays()),
-          const SizedBox(height: 24),
-
-          // Statistics
-          Text(
-            'İstatistikler',
-            style: AppTextStyles.titleLarge(context),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildStatisticRow(
-                    'Toplam Hedef',
-                    goals.length.toString(),
-                    Icons.assignment,
-                  ),
-                  const Divider(),
-                  _buildStatisticRow(
-                    'Tamamlanan',
-                    completedGoals.toString(),
-                    Icons.check_circle,
-                    color: Colors.green,
-                  ),
-                  const Divider(),
-                  _buildStatisticRow(
-                    'Başarı Oranı',
-                    '${(completionRate * 100).toStringAsFixed(1)}%',
-                    Icons.trending_up,
-                    color: Colors.blue,
-                  ),
-                ],
-              ),
+            // Weekly Performance
+            Text(
+              'Haftalık Performans',
+              style: AppTextStyles.titleLarge(context),
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 12),
+            _buildWeeklyPerformance('Geçen Hafta', _getPreviousWeekDays()),
+            const SizedBox(height: 16),
+            _buildWeeklyPerformance('Bu Hafta', _getCurrentWeekDays()),
+            const SizedBox(height: 24),
 
-          // Achievements
-          Text(
-            'Başarılar',
-            style: AppTextStyles.titleLarge(context),
-          ),
-          const SizedBox(height: 12),
-          _buildAchievements(completedGoals, currentStreak),
-          const SizedBox(height: 24),
-
-          // Motivation Quote
-          Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.format_quote,
-                    size: 32,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _getMotivationalQuote(),
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.bodyLarge(context).copyWith(
-                      fontStyle: FontStyle.italic,
+            // Statistics
+            Text(
+              'İstatistikler',
+              style: AppTextStyles.titleLarge(context),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildStatisticRow(
+                      'Toplam Hedef',
+                      goals.length.toString(),
+                      Icons.assignment,
                     ),
-                  ),
-                ],
+                    const Divider(),
+                    _buildStatisticRow(
+                      'Tamamlanan',
+                      completedGoals.toString(),
+                      Icons.check_circle,
+                      color: Colors.green,
+                    ),
+                    const Divider(),
+                    _buildStatisticRow(
+                      'Başarı Oranı',
+                      '${(completionRate * 100).toStringAsFixed(1)}%',
+                      Icons.trending_up,
+                      color: Colors.blue,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+
+            // Achievements
+            Text(
+              'Başarılar',
+              style: AppTextStyles.titleLarge(context),
+            ),
+            const SizedBox(height: 12),
+            _buildAchievements(completedGoals, currentStreak),
+            const SizedBox(height: 24),
+
+            // Motivation Quote
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.format_quote,
+                      size: 32,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _getMotivationalQuote(),
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bodyLarge(context).copyWith(
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
