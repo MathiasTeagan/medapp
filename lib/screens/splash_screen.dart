@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/goals_provider.dart';
+import '../providers/read_chapters_provider.dart';
 import 'auth/login_screen.dart';
 import 'main_screen.dart';
 
@@ -31,6 +33,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
     final authProvider = context.read<AuthProvider>();
     final isAuthenticated = await authProvider.isAuthenticated();
+
+    if (!mounted) return;
+
+    // Kullanıcı giriş yapmışsa verileri yükle
+    if (isAuthenticated) {
+      await context.read<GoalsProvider>().loadGoals();
+      await context.read<ReadChaptersProvider>().loadReadChapters();
+    }
 
     if (!mounted) return;
 

@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'user_provider.dart';
+import 'goals_provider.dart';
+import 'read_chapters_provider.dart';
 
 class AuthProvider with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -42,6 +44,21 @@ class AuthProvider with ChangeNotifier {
       currentYear: userData['currentYear'] ?? 1,
     );
     return Future.value();
+  }
+
+  Future<void> loadUserData() async {
+    if (!_context.mounted) return;
+
+    try {
+      final goalsProvider = Provider.of<GoalsProvider>(_context, listen: false);
+      final readChaptersProvider =
+          Provider.of<ReadChaptersProvider>(_context, listen: false);
+
+      await goalsProvider.loadGoals();
+      await readChaptersProvider.loadReadChapters();
+    } catch (e) {
+      debugPrint('Error loading user data: $e');
+    }
   }
 
   Future<bool> isAuthenticated() async {
@@ -93,6 +110,9 @@ class AuthProvider with ChangeNotifier {
       await prefs.setString('academicLevel', academicLevel);
 
       await updateUserProvider(userData);
+
+      // Kullanıcı verilerini yükle
+      await loadUserData();
     } catch (e) {
       rethrow;
     } finally {
@@ -126,6 +146,9 @@ class AuthProvider with ChangeNotifier {
             'academicLevel', userData.data()!['academicLevel']);
 
         await updateUserProvider(userData.data()!);
+
+        // Kullanıcı verilerini yükle
+        await loadUserData();
       }
     } catch (e) {
       rethrow;

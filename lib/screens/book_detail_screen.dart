@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../theme/text_styles.dart';
 import '../models/goal.dart';
 import '../providers/goals_provider.dart';
+import '../providers/read_chapters_provider.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final String title;
@@ -25,9 +26,17 @@ class BookDetailScreen extends StatefulWidget {
 }
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
-  Set<String> _completedChapters = {};
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Sayfa açıldığında okunan chapter'ları yükle
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ReadChaptersProvider>().loadReadChapters();
+    });
+  }
 
   @override
   void dispose() {
@@ -36,24 +45,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   void _toggleChapterCompletion(String chapter) {
-    final goals = context.read<GoalsProvider>().goals;
-    final existingGoal = goals
-        .where((goal) =>
-            goal.bookTitle == widget.title && goal.chapterName == chapter)
-        .firstOrNull;
-
-    if (existingGoal != null) {
-      // Eğer chapter zaten hedeflerdeyse, sadece tamamlanma durumunu güncelle
-      context.read<GoalsProvider>().toggleGoalCompletion(existingGoal);
-    }
-
-    setState(() {
-      if (_completedChapters.contains(chapter)) {
-        _completedChapters.remove(chapter);
-      } else {
-        _completedChapters.add(chapter);
-      }
-    });
+    final readChaptersProvider = context.read<ReadChaptersProvider>();
+    readChaptersProvider.toggleChapterReadStatus(
+      widget.title,
+      chapter,
+      widget.branch,
+      widget.type,
+    );
   }
 
   void _addToGoals(String chapter) {
@@ -110,6 +108,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 600;
     final goals = context.watch<GoalsProvider>().goals;
+    final readChaptersProvider = context.watch<ReadChaptersProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -203,7 +202,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   itemCount: filteredChapters.length,
                   itemBuilder: (context, index) {
                     final chapter = filteredChapters[index];
-                    final isCompleted = _completedChapters.contains(chapter);
+                    final isCompleted = readChaptersProvider.isChapterRead(
+                      widget.title,
+                      chapter,
+                      widget.branch,
+                      widget.type,
+                    );
                     final isTargeted = _isInGoals(chapter, goals);
 
                     return Card(
@@ -255,7 +259,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   void _showCompletionDialog(String chapter) {
-    final isCompleted = _completedChapters.contains(chapter);
+    final readChaptersProvider = context.read<ReadChaptersProvider>();
+    final isCompleted = readChaptersProvider.isChapterRead(
+      widget.title,
+      chapter,
+      widget.branch,
+      widget.type,
+    );
     final goals = context.read<GoalsProvider>().goals;
     final isTargeted = _isInGoals(chapter, goals);
 

@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/goals_provider.dart';
+import '../providers/read_chapters_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../theme/text_styles.dart';
 import 'package:intl/intl.dart';
 
-class LogbookScreen extends StatelessWidget {
+class LogbookScreen extends StatefulWidget {
   const LogbookScreen({super.key});
+
+  @override
+  State<LogbookScreen> createState() => _LogbookScreenState();
+}
+
+class _LogbookScreenState extends State<LogbookScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Sayfa açıldığında okunan chapter'ları yükle
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ReadChaptersProvider>().loadReadChapters();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,19 +41,12 @@ class LogbookScreen extends StatelessWidget {
   }
 
   Widget _buildLogList(BuildContext context, bool isSmallScreen) {
-    return Consumer<GoalsProvider>(
-      builder: (context, goalsProvider, child) {
-        var completedGoals = goalsProvider.goals
-            .where((goal) => goal.isCompleted)
-            .toList()
-          ..sort((a, b) {
-            if (a.completedDate == null && b.completedDate == null) return 0;
-            if (a.completedDate == null) return 1;
-            if (b.completedDate == null) return -1;
-            return b.completedDate!.compareTo(a.completedDate!);
-          });
+    return Consumer<ReadChaptersProvider>(
+      builder: (context, readChaptersProvider, child) {
+        var readChapters = readChaptersProvider.readChapters
+          ..sort((a, b) => b.readDate.compareTo(a.readDate));
 
-        if (completedGoals.isEmpty) {
+        if (readChapters.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -62,10 +70,10 @@ class LogbookScreen extends StatelessWidget {
         }
 
         return ListView.builder(
-          itemCount: completedGoals.length,
+          itemCount: readChapters.length,
           itemBuilder: (context, index) {
-            final goal = completedGoals[index];
-            final isTextbook = goal.type == 'Textbook';
+            final chapter = readChapters[index];
+            final isTextbook = chapter.type == 'Textbook';
 
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 4),
@@ -79,14 +87,14 @@ class LogbookScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${goal.bookTitle} - ${goal.chapterName}',
+                      '${chapter.bookTitle} - ${chapter.chapterName}',
                       style: AppTextStyles.bodyLarge(context).copyWith(
                         fontSize: isSmallScreen ? 14 : 16,
                         color: AppColors.primaryText,
                       ),
                     ),
                     Text(
-                      goal.branch,
+                      chapter.branch,
                       style: AppTextStyles.bodyMedium(context).copyWith(
                         fontSize: isSmallScreen ? 12 : 14,
                         color: AppColors.secondaryText,
@@ -95,7 +103,7 @@ class LogbookScreen extends StatelessWidget {
                   ],
                 ),
                 subtitle: Text(
-                  _formatDate(goal.completedDate!),
+                  _formatDate(chapter.readDate),
                   style: AppTextStyles.bodyMedium(context).copyWith(
                     fontSize: isSmallScreen ? 12 : 14,
                     color: AppColors.secondaryText,
@@ -113,7 +121,7 @@ class LogbookScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    goal.type,
+                    chapter.type,
                     style: AppTextStyles.bodyMedium(context).copyWith(
                       color:
                           isTextbook ? AppColors.primary : AppColors.tertiary,
