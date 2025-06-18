@@ -67,7 +67,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Hedeflere eklendi!'),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.orange,
       ),
     );
   }
