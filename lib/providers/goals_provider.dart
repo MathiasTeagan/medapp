@@ -10,16 +10,114 @@ class GoalsProvider with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   List<Goal> _goals = [];
   bool _isLoading = false;
+  String? _currentUserId;
 
   List<Goal> get goals => _goals;
   bool get isLoading => _isLoading;
+
+  GoalsProvider() {
+    // Kullanıcı değişikliklerini dinle
+    _auth.authStateChanges().listen((User? user) {
+      if (user?.uid != _currentUserId) {
+        _currentUserId = user?.uid;
+        _clearLocalData();
+        if (user != null) {
+          // Yeni kullanıcı için Firebase'den yükle
+          loadGoals();
+        }
+      }
+    });
+  }
+
+  void _clearLocalData() {
+    // Sadece yerel listeyi temizle, depolamayı değil
+    _goals = [];
+    notifyListeners();
+  }
+
+  Future<void> clearAllData() async {
+    try {
+      // Sadece yerel listeyi temizle
+      _goals = [];
+      notifyListeners();
+
+      // Yerel depolamayı da temizle
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('goals');
+
+      // Firebase'de de varsa temizle
+      if (_auth.currentUser != null) {
+        try {
+          final snapshot = await _firestore
+              .collection('users')
+              .doc(_auth.currentUser!.uid)
+              .collection('goals')
+              .get();
+
+          // Batch delete
+          final batch = _firestore.batch();
+          for (final doc in snapshot.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
+        } catch (e) {
+          print('Firebase clear error: $e');
+        }
+      }
+    } catch (e) {
+      print('Clear data error: $e');
+    }
+  }
 
   Future<void> loadGoals() async {
     try {
       _isLoading = true;
       notifyListeners();
 
-      // Önce yerel depolamadan hedefleri yükle
+      // Kullanıcı oturum açmışsa, Firebase'den hedefleri yükle
+      if (_auth.currentUser != null) {
+        try {
+          final snapshot = await _firestore
+              .collection('users')
+              .doc(_auth.currentUser!.uid)
+              .collection('goals')
+              .get();
+
+          final firebaseGoals = snapshot.docs.map((doc) {
+            final data = doc.data();
+            return Goal.fromJson({...data, 'id': doc.id});
+          }).toList();
+
+          _goals = firebaseGoals;
+
+          // Firebase'den gelen hedefleri yerel depolamaya kaydet
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(
+              'goals',
+              json.encode(
+                _goals.map((g) => g.toJson()).toList(),
+              ));
+
+          notifyListeners();
+        } catch (e) {
+          // Firebase'e bağlanamazsa yerel depolamadan yükle
+          print('Firebase connection error: $e');
+          await _loadFromLocalStorage();
+        }
+      } else {
+        // Kullanıcı oturum açmamışsa yerel depolamadan yükle
+        await _loadFromLocalStorage();
+      }
+    } catch (e) {
+      print('Goals loading error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _loadFromLocalStorage() async {
+    try {
       final prefs = await SharedPreferences.getInstance();
       final goalsJson = prefs.getString('goals');
 
@@ -28,34 +126,8 @@ class GoalsProvider with ChangeNotifier {
         _goals = decodedGoals.map((g) => Goal.fromJson(g)).toList();
         notifyListeners();
       }
-
-      // Kullanıcı oturum açmışsa, Firebase'den hedefleri yükle
-      if (_auth.currentUser != null) {
-        final snapshot = await _firestore
-            .collection('users')
-            .doc(_auth.currentUser!.uid)
-            .collection('goals')
-            .get();
-
-        _goals = snapshot.docs.map((doc) {
-          final data = doc.data();
-          return Goal.fromJson({...data, 'id': doc.id});
-        }).toList();
-
-        // Firebase'den gelen hedefleri yerel depolamaya kaydet
-        await prefs.setString(
-            'goals',
-            json.encode(
-              _goals.map((g) => g.toJson()).toList(),
-            ));
-
-        notifyListeners();
-      }
     } catch (e) {
-      // Hata durumunda sessizce devam et
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      print('Local storage loading error: $e');
     }
   }
 
@@ -63,6 +135,8 @@ class GoalsProvider with ChangeNotifier {
     try {
       _isLoading = true;
       notifyListeners();
+
+      Goal goalToAdd = goal;
 
       if (_auth.currentUser != null) {
         // Firebase'e hedefi ekle
@@ -72,11 +146,11 @@ class GoalsProvider with ChangeNotifier {
             .collection('goals')
             .add(goal.toJson());
 
-        goal = goal.copyWith(id: docRef.id);
+        goalToAdd = goal.copyWith(id: docRef.id);
       }
 
       // Yerel listeye ekle
-      _goals.add(goal);
+      _goals.add(goalToAdd);
 
       // Yerel depolamaya kaydet
       final prefs = await SharedPreferences.getInstance();
@@ -87,6 +161,8 @@ class GoalsProvider with ChangeNotifier {
           ));
 
       notifyListeners();
+    } catch (e) {
+      print('Add goal error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -231,6 +307,19 @@ class GoalsProvider with ChangeNotifier {
   Future<void> removeGoal(Goal goal) async {
     if (goal.id != null) {
       await deleteGoal(goal.id!);
+    } else {
+      // ID yoksa yerel listeden sil
+      _goals.remove(goal);
+
+      // Yerel depolamayı güncelle
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+          'goals',
+          json.encode(
+            _goals.map((g) => g.toJson()).toList(),
+          ));
+
+      notifyListeners();
     }
   }
 }

@@ -74,15 +74,20 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   void _removeFromGoals(String chapter) {
     final goals = context.read<GoalsProvider>().goals;
-    final goalToRemove = goals.firstWhere((goal) =>
-        goal.bookTitle == widget.title && goal.chapterName == chapter);
-    context.read<GoalsProvider>().removeGoal(goalToRemove);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Hedeflerden çıkarıldı!'),
-        backgroundColor: Colors.orange,
-      ),
-    );
+    final goalToRemove = goals
+        .where((goal) =>
+            goal.bookTitle == widget.title && goal.chapterName == chapter)
+        .firstOrNull;
+
+    if (goalToRemove != null) {
+      context.read<GoalsProvider>().removeGoal(goalToRemove);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Hedeflerden çıkarıldı!'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
   }
 
   bool _isInGoals(String chapter, List<Goal> goals) {

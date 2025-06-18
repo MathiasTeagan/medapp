@@ -54,16 +54,28 @@ class Goal {
   }
 
   factory Goal.fromJson(Map<String, dynamic> json) {
+    DateTime parseDate(dynamic dateValue) {
+      if (dateValue is String) {
+        return DateTime.parse(dateValue);
+      } else if (dateValue is DateTime) {
+        return dateValue;
+      } else if (dateValue != null) {
+        // Handle Firebase Timestamp
+        return (dateValue as dynamic).toDate();
+      }
+      throw FormatException('Invalid date format: $dateValue');
+    }
+
     return Goal(
       id: json['id'] as String?,
       bookTitle: json['bookTitle'] as String,
       chapterName: json['chapterName'] as String,
       branch: json['branch'] as String,
-      addedDate: DateTime.parse(json['addedDate'] as String),
+      addedDate: parseDate(json['addedDate']),
       type: json['type'] as String,
       isCompleted: json['isCompleted'] as bool,
       completedDate: json['completedDate'] != null
-          ? DateTime.parse(json['completedDate'] as String)
+          ? parseDate(json['completedDate'])
           : null,
     );
   }
@@ -94,8 +106,6 @@ class Goal {
         isCompleted.hashCode ^
         completedDate.hashCode;
   }
-
-  String get chapter => '$bookTitle - $chapterName';
 }
 
 // Global goals list and addGoal function

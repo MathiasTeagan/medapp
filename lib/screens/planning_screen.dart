@@ -193,17 +193,17 @@ class _PlanningScreenState extends State<PlanningScreen> {
                   itemBuilder: (context, index) {
                     final goal = uncompletedGoals[index];
                     return ListTile(
-                      title: Text(goal.chapter),
+                      title: Text(goal.chapterName),
                       subtitle: Text(goal.branch),
                       onTap: () {
                         setState(() {
                           if (!_plannedChapters.containsKey(selectedDay)) {
                             _plannedChapters[selectedDay] = [];
                           }
-                          _plannedChapters[selectedDay]!.add(goal.chapter);
+                          _plannedChapters[selectedDay]!.add(goal.chapterName);
                         });
                         Navigator.pop(context);
-                        _savePlan(goal.chapter, selectedDay, goal.branch);
+                        _savePlan(goal.chapterName, selectedDay, goal.branch);
                       },
                     );
                   },
