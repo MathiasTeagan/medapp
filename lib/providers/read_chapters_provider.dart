@@ -44,6 +44,7 @@ class ReadChaptersProvider with ChangeNotifier {
       // Önce yerel depolamadan okunan chapter'ları yükle
       final prefs = await SharedPreferences.getInstance();
       final chaptersJson = prefs.getString('readChapters');
+
       if (chaptersJson != null) {
         final List<dynamic> decodedChapters = json.decode(chaptersJson);
         _readChapters =
@@ -73,6 +74,8 @@ class ReadChaptersProvider with ChangeNotifier {
 
         notifyListeners();
       }
+    } catch (e) {
+      // Hata durumunda sessizce devam et
     } finally {
       _isLoading = false;
       notifyListeners();

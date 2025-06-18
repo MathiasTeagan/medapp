@@ -63,7 +63,9 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> isAuthenticated() async {
     final user = _auth.currentUser;
-    if (user == null) return false;
+    if (user == null) {
+      return false;
+    }
 
     // Kullanıcının token'ının geçerli olup olmadığını kontrol et
     try {

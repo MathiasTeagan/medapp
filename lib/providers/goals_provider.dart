@@ -22,6 +22,7 @@ class GoalsProvider with ChangeNotifier {
       // Önce yerel depolamadan hedefleri yükle
       final prefs = await SharedPreferences.getInstance();
       final goalsJson = prefs.getString('goals');
+
       if (goalsJson != null) {
         final List<dynamic> decodedGoals = json.decode(goalsJson);
         _goals = decodedGoals.map((g) => Goal.fromJson(g)).toList();
@@ -50,6 +51,8 @@ class GoalsProvider with ChangeNotifier {
 
         notifyListeners();
       }
+    } catch (e) {
+      // Hata durumunda sessizce devam et
     } finally {
       _isLoading = false;
       notifyListeners();
