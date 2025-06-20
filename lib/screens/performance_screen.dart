@@ -3,9 +3,37 @@ import 'package:provider/provider.dart';
 import '../providers/goals_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/text_styles.dart';
+import 'dart:async';
 
-class PerformanceScreen extends StatelessWidget {
+class PerformanceScreen extends StatefulWidget {
   const PerformanceScreen({super.key});
+
+  @override
+  State<PerformanceScreen> createState() => _PerformanceScreenState();
+}
+
+class _PerformanceScreenState extends State<PerformanceScreen> {
+  bool _isLoading = true;
+  Timer? _loadingTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Minimum 400ms loading süresi
+    _loadingTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _loadingTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +42,17 @@ class PerformanceScreen extends StatelessWidget {
     final goals = goalsProvider.goals;
     final completedGoals = goals.where((goal) => goal.isCompleted).length;
     final completionRate = goals.isEmpty ? 0.0 : completedGoals / goals.length;
-    final currentStreak = _calculateCurrentStreak();
+
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Performans'),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -25,57 +63,6 @@ class PerformanceScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Streak Card
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue.shade400, Colors.blue.shade700],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.local_fire_department,
-                          color: Colors.orange.shade400,
-                          size: 32,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$currentStreak Gün',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Kesintisiz Okuma',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
             // Weekly Performance
             Text(
               'Haftalık Performans',
@@ -117,41 +104,6 @@ class PerformanceScreen extends StatelessWidget {
                       '${(completionRate * 100).toStringAsFixed(1)}%',
                       Icons.trending_up,
                       color: Colors.blue,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Achievements
-            Text(
-              'Başarılar',
-              style: AppTextStyles.titleLarge(context),
-            ),
-            const SizedBox(height: 12),
-            _buildAchievements(completedGoals, currentStreak),
-            const SizedBox(height: 24),
-
-            // Motivation Quote
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.format_quote,
-                      size: 32,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _getMotivationalQuote(),
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.bodyLarge(context).copyWith(
-                        fontStyle: FontStyle.italic,
-                      ),
                     ),
                   ],
                 ),
@@ -255,87 +207,6 @@ class PerformanceScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAchievements(int completedGoals, int currentStreak) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 3,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      children: [
-        _buildAchievementCard(
-          'Başlangıç',
-          Icons.star,
-          completedGoals >= 1,
-          'İlk hedefini tamamla',
-        ),
-        _buildAchievementCard(
-          'Kararlı',
-          Icons.local_fire_department,
-          currentStreak >= 3,
-          '3 gün kesintisiz oku',
-        ),
-        _buildAchievementCard(
-          'Uzman',
-          Icons.workspace_premium,
-          completedGoals >= 10,
-          '10 hedef tamamla',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAchievementCard(
-      String title, IconData icon, bool unlocked, String description) {
-    return Container(
-      decoration: BoxDecoration(
-        color: unlocked ? Colors.white : Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: unlocked ? Colors.amber : Colors.grey.shade300,
-        ),
-        boxShadow: unlocked
-            ? [
-                BoxShadow(
-                  color: Colors.amber.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                )
-              ]
-            : null,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 32,
-            color: unlocked ? Colors.amber : Colors.grey,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: unlocked ? Colors.black : Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            description,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey.shade600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   List<DateTime> _getCurrentWeekDays() {
     final now = DateTime.now();
     final monday = now.subtract(Duration(days: now.weekday - 1));
@@ -358,21 +229,5 @@ class PerformanceScreen extends StatelessWidget {
     return date.year == now.year &&
         date.month == now.month &&
         date.day == now.day;
-  }
-
-  int _calculateCurrentStreak() {
-    // Dummy data - gerçek verilerle değiştirilecek
-    return 5;
-  }
-
-  String _getMotivationalQuote() {
-    final quotes = [
-      'Bilgi güçtür.',
-      'Her gün yeni bir şey öğren.',
-      'Küçük adımlar, büyük başarılar getirir.',
-      'Başarı, her gün tekrarlanan küçük çabaların toplamıdır.',
-      'Öğrenme arzusu, başarının ilk adımıdır.',
-    ];
-    return quotes[DateTime.now().day % quotes.length];
   }
 }

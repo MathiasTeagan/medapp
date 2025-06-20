@@ -21,6 +21,11 @@ class _PlanningScreenState extends State<PlanningScreen> {
   DateTime? _selectedDay;
   final Map<DateTime, List<String>> _plannedChapters = {};
 
+  // DateTime key'lerini normalize etmek için helper method
+  DateTime _normalizeDate(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,7 +80,8 @@ class _PlanningScreenState extends State<PlanningScreen> {
                 }
               },
               eventLoader: (day) {
-                return _plannedChapters[day] ?? [];
+                final normalizedDay = _normalizeDate(day);
+                return _plannedChapters[normalizedDay] ?? [];
               },
             ),
           ),
@@ -196,11 +202,13 @@ class _PlanningScreenState extends State<PlanningScreen> {
                       title: Text(goal.chapterName),
                       subtitle: Text(goal.branch),
                       onTap: () {
+                        final normalizedDate = _normalizeDate(selectedDay);
                         setState(() {
-                          if (!_plannedChapters.containsKey(selectedDay)) {
-                            _plannedChapters[selectedDay] = [];
+                          if (!_plannedChapters.containsKey(normalizedDate)) {
+                            _plannedChapters[normalizedDate] = [];
                           }
-                          _plannedChapters[selectedDay]!.add(goal.chapterName);
+                          _plannedChapters[normalizedDate]!
+                              .add(goal.chapterName);
                         });
                         Navigator.pop(context);
                         _savePlan(goal.chapterName, selectedDay, goal.branch);
