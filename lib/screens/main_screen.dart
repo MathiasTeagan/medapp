@@ -8,6 +8,7 @@ import 'performance_screen.dart';
 import 'planning_screen.dart';
 import 'logbook_screen.dart';
 import 'what_to_read_screen.dart';
+import 'journals_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -26,6 +27,7 @@ class _MainScreenState extends State<MainScreen> {
     const PlanningScreen(),
     const LogbookScreen(),
     const PerformanceScreen(),
+    const JournalsScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -114,6 +116,10 @@ class _MainScreenState extends State<MainScreen> {
           NavigationDestination(
             icon: Icon(Icons.bar_chart),
             label: 'Performans',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.article),
+            label: 'Dergiler',
           ),
         ],
       ),

@@ -7,6 +7,7 @@ import 'providers/user_provider.dart';
 import 'providers/planned_readings_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/read_chapters_provider.dart';
+import 'providers/journals_provider.dart';
 import 'screens/splash_screen.dart';
 import 'services/notification_service.dart';
 import 'services/navigation_service.dart';
@@ -32,6 +33,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => PlannedReadingsProvider()),
         ChangeNotifierProvider(create: (_) => ReadChaptersProvider()),
+        ChangeNotifierProvider(create: (_) => JournalsProvider()),
       ],
       child: const MyApp(),
     ),
