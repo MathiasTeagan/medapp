@@ -131,7 +131,8 @@ class NotificationService {
     }
   }
 
-  Future<void> scheduleDailyReadingCheck() async {
+  Future<void> scheduleDailyReadingCheck(
+      {int hour = 22, int minute = 0}) async {
     const androidDetails = AndroidNotificationDetails(
       'daily_check_channel',
       'Günlük Okuma Kontrolü',
@@ -163,8 +164,8 @@ class NotificationService {
       now.year,
       now.month,
       now.day,
-      22, // Saat 22:00
-      0,
+      hour,
+      minute,
     );
 
     if (now.isAfter(scheduledDate)) {
@@ -182,6 +183,10 @@ class NotificationService {
           UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
+  }
+
+  Future<void> cancelDailyReadingCheck() async {
+    await _notifications.cancel(0);
   }
 
   Future<void> scheduleChapterReminder(
