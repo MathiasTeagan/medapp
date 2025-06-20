@@ -55,7 +55,8 @@ class _JournalsScreenState extends State<JournalsScreen>
             children: [
               // Branch Selector
               Padding(
-                padding: EdgeInsets.all(size.width * 0.04),
+                padding: EdgeInsets.fromLTRB(
+                    size.width * 0.04, size.width * 0.04, size.width * 0.04, 8),
                 child: BranchSelector(
                   selectedBranch: journalsProvider.selectedBranch,
                   onBranchSelected: (branch) {
@@ -67,8 +68,7 @@ class _JournalsScreenState extends State<JournalsScreen>
 
               // TabBar
               Container(
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
@@ -287,15 +287,17 @@ class _JournalsScreenState extends State<JournalsScreen>
                 if (article.link?.isNotEmpty == true) ...[
                   const SizedBox(height: 12),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _launchUrl(article.link!),
-                          icon: const Icon(Icons.open_in_new),
-                          label: const Text('Makaleyi Aç'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                          ),
+                      OutlinedButton.icon(
+                        onPressed: () => _launchUrl(article.link!),
+                        icon: const Icon(Icons.open_in_new, size: 16),
+                        label: const Text('Makaleyi Aç'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          minimumSize: const Size(0, 36),
                         ),
                       ),
                     ],

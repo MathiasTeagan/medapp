@@ -65,10 +65,25 @@ class RssService {
               'The Gold Journal - Official Journal of the American Urological Association',
         ),
         Journal(
+          name: 'Nature Reviews Urology',
+          rssUrl: 'https://www.nature.com/nrurol.rss',
+          branch: 'Üroloji',
+          description:
+              'Nature Reviews Urology - Peer-reviewed journal for urologists and affiliated health-care professionals',
+        ),
+        Journal(
           name: 'European Urology',
           rssUrl: 'https://www.europeanurology.com/rss/current.xml',
           branch: 'Üroloji',
-          description: 'European Association of Urology Journal',
+          description:
+              'European Urology - Official journal of the European Association of Urology',
+        ),
+        Journal(
+          name: 'The Journal of Urology',
+          rssUrl: 'https://www.auajournals.org/rss/ju_current.xml',
+          branch: 'Üroloji',
+          description:
+              'The Journal of Urology - Official journal of the American Urological Association',
         ),
       ],
       'Kardiyoloji': [
