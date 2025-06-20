@@ -24,6 +24,11 @@ class _JournalsScreenState extends State<JournalsScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
+    // TabController'a listener ekle
+    _tabController.addListener(() {
+      setState(() {}); // Tab değiştiğinde UI'ı güncelle
+    });
+
     // Kullanıcının branşını ayarla
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userProvider = context.read<UserProvider>();
@@ -82,34 +87,79 @@ class _JournalsScreenState extends State<JournalsScreen>
                     ),
                   ],
                 ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: AppColors.primary,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                child: Row(
+                  children: [
+                    // Dergiler Tab
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _tabController.animateTo(0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: _tabController.index == 0
+                                ? AppColors.primary
+                                : Colors.transparent,
+                            boxShadow: _tabController.index == 0
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.primary.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Text(
+                            'Dergiler',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: _tabController.index == 0
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                              color: _tabController.index == 0
+                                  ? Colors.white
+                                  : Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.grey.shade600,
-                  labelStyle: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  dividerColor: Colors.transparent,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  tabs: const [
-                    Tab(text: 'Dergiler'),
-                    Tab(text: 'Makaleler'),
+                    ),
+                    // Makaleler Tab (tıklanamaz)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: _tabController.index == 1
+                              ? AppColors.primary
+                              : Colors.transparent,
+                          boxShadow: _tabController.index == 1
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Text(
+                          'Makaleler',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: _tabController.index == 1
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                            color: _tabController.index == 1
+                                ? Colors.white
+                                : Colors.grey.shade400,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

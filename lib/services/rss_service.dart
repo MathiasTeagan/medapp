@@ -85,6 +85,13 @@ class RssService {
           description:
               'The Journal of Urology - Official journal of the American Urological Association',
         ),
+        Journal(
+          name: 'Neurourology and Urodynamics',
+          rssUrl: 'https://onlinelibrary.wiley.com/feed/15206777/most-recent',
+          branch: 'Üroloji',
+          description:
+              'Neurourology and Urodynamics - Wiley journal focusing on functional urology and neurourology',
+        ),
       ],
       'Kardiyoloji': [
         Journal(
