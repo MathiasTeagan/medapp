@@ -1,0 +1,29 @@
+Uygulama İçerisinde Planlananlar
+
+1. Akademik Takvim ve Etkinlikler
+- Kongre, sempozyum, webinar gibi tıbbi etkinliklerin takvimi eklenebilir.
+- Kullanıcılar kendi etkinliklerini de takvime ekleyebilir.
+- Bildirimlerle yaklaşan etkinlikler hatırlatılabilir.
+
+2. Mentorluk ve Topluluk Özelliği
+- Kullanıcılar kendi branşlarında mentor bulabilir veya mentorluk yapabilir.
+- Forum veya grup sohbeti ile bilgi paylaşımı ve motivasyon sağlanabilir.
+
+3. Okuma Listeleri ve Koleksiyonlar (İleride yapılabilir)
+- Kullanıcılar kendi okuma listelerini oluşturabilir (ör. “USMLE için”, “TUS için” gibi).
+- Listeler başkalarıyla paylaşılabilir.
+
+4. Kariyer Planlama ve CV Oluşturucu
+- Kullanıcılar akademik başarılarını, katıldıkları kursları, yayınlarını kaydedebilir.
+- Otomatik olarak PDF formatında CV oluşturulabilir.
+
+5. Performans ve İstatistikler
+- Haftalık, aylık, yıllık okuma ve başarı grafikleri.
+- Hangi branşta, hangi materyalde daha çok vakit geçirildiği gibi detaylı analizler. (Performans sayfasında geliştirilecek)
+
+6. Offline Mod
+- İnternet olmadan da okuma ve işaretleme yapılabilmesi.
+- Bağlantı sağlandığında otomatik senkronizasyon.
+
+7. Karanlık Mod (Dark Mode)
+- Göz yormayan, gece kullanımı için tema seçeneği. 
