@@ -4,6 +4,8 @@ import '../providers/goals_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/text_styles.dart';
 import 'dart:async';
+import '../providers/read_chapters_provider.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class PerformanceScreen extends StatefulWidget {
   const PerformanceScreen({super.key});
@@ -15,6 +17,8 @@ class PerformanceScreen extends StatefulWidget {
 class _PerformanceScreenState extends State<PerformanceScreen> {
   bool _isLoading = true;
   Timer? _loadingTimer;
+  List<int> _animatedCounts = [];
+  bool _animationStarted = false;
 
   @override
   void initState() {
@@ -26,6 +30,14 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           _isLoading = false;
         });
       }
+    });
+    // Animasyon için gecikmeli başlatma
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return;
+      setState(() {
+        _animationStarted = true;
+      });
     });
   }
 
@@ -39,6 +51,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final goalsProvider = context.watch<GoalsProvider>();
+    final readChaptersProvider = context.watch<ReadChaptersProvider>();
     final goals = goalsProvider.goals;
     final completedGoals = goals.where((goal) => goal.isCompleted).length;
     final completionRate = goals.isEmpty ? 0.0 : completedGoals / goals.length;
@@ -69,53 +82,27 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               style: AppTextStyles.titleLarge(context),
             ),
             const SizedBox(height: 12),
-            _buildWeeklyPerformance('Geçen Hafta', _getPreviousWeekDays()),
+            _buildWeeklyPerformance(
+                'Geçen Hafta', _getPreviousWeekDays(), readChaptersProvider),
             const SizedBox(height: 16),
-            _buildWeeklyPerformance('Bu Hafta', _getCurrentWeekDays()),
+            _buildWeeklyPerformance(
+                'Bu Hafta', _getCurrentWeekDays(), readChaptersProvider),
             const SizedBox(height: 24),
-
-            // Statistics
             Text(
-              'İstatistikler',
+              'Aylık Okuma Grafiği',
               style: AppTextStyles.titleLarge(context),
             ),
             const SizedBox(height: 12),
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildStatisticRow(
-                      'Toplam Hedef',
-                      goals.length.toString(),
-                      Icons.assignment,
-                    ),
-                    const Divider(),
-                    _buildStatisticRow(
-                      'Tamamlanan',
-                      completedGoals.toString(),
-                      Icons.check_circle,
-                      color: Colors.green,
-                    ),
-                    const Divider(),
-                    _buildStatisticRow(
-                      'Başarı Oranı',
-                      '${(completionRate * 100).toStringAsFixed(1)}%',
-                      Icons.trending_up,
-                      color: Colors.blue,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _buildDailyChapterChart(readChaptersProvider),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildWeeklyPerformance(String title, List<DateTime> days) {
+  Widget _buildWeeklyPerformance(String title, List<DateTime> days,
+      ReadChaptersProvider readChaptersProvider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -129,18 +116,130 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: days.map((day) => _buildDayBox(day)).toList(),
+          children: days
+              .map((day) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: _buildDayBox(day, readChaptersProvider),
+                    ),
+                  ))
+              .toList(),
         ),
       ],
     );
   }
 
-  Widget _buildDayBox(DateTime date) {
-    final bool hasRead = date.day % 2 == 0; // Dummy data
+  Widget _buildMonthlyBarChart(ReadChaptersProvider readChaptersProvider) {
+    final now = DateTime.now();
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final days = List.generate(daysInMonth, (i) => i + 1);
+
+    // Her gün için textbook ve guideline sayısı
+    final List<int> textbookCounts = List.generate(daysInMonth, (i) => 0);
+    final List<int> guidelineCounts = List.generate(daysInMonth, (i) => 0);
+
+    for (var chapter in readChaptersProvider.readChapters) {
+      if (chapter.readDate.year == now.year &&
+          chapter.readDate.month == now.month) {
+        int dayIdx = chapter.readDate.day - 1;
+        if (chapter.type == 'Textbook') textbookCounts[dayIdx]++;
+        if (chapter.type == 'Guideline') guidelineCounts[dayIdx]++;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.menu_book, color: Colors.deepPurple, size: 18),
+            const SizedBox(width: 4),
+            const Text('Textbook', style: TextStyle(fontSize: 13)),
+            const SizedBox(width: 12),
+            Icon(Icons.rule, color: Colors.teal, size: 18),
+            const SizedBox(width: 4),
+            const Text('Guideline', style: TextStyle(fontSize: 13)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 220,
+          child: BarChart(
+            BarChartData(
+              maxY: (textbookCounts + guidelineCounts)
+                      .fold<int>(0, (prev, e) => e > prev ? e : prev) +
+                  2,
+              barTouchData: BarTouchData(enabled: true),
+              titlesData: FlTitlesData(
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 28,
+                    getTitlesWidget: (value, meta) =>
+                        Text(value.toInt().toString()),
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: 1,
+                    getTitlesWidget: (value, meta) {
+                      int idx = value.toInt();
+                      if (idx < 0 || idx >= days.length)
+                        return const SizedBox.shrink();
+                      return Text('${days[idx]}',
+                          style: const TextStyle(fontSize: 10));
+                    },
+                  ),
+                ),
+              ),
+              gridData: FlGridData(show: true, horizontalInterval: 1),
+              borderData: FlBorderData(show: false),
+              barGroups: List.generate(days.length, (i) {
+                final textbook = textbookCounts[i];
+                final guideline = guidelineCounts[i];
+                return BarChartGroupData(
+                  x: i,
+                  barRods: [
+                    BarChartRodData(
+                      toY: (textbook + guideline).toDouble(),
+                      rodStackItems: [
+                        if (textbook > 0)
+                          BarChartRodStackItem(
+                              0, textbook.toDouble(), Colors.deepPurple),
+                        if (guideline > 0)
+                          BarChartRodStackItem(textbook.toDouble(),
+                              (textbook + guideline).toDouble(), Colors.teal),
+                      ],
+                      width: 12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDayBox(DateTime date, ReadChaptersProvider readChaptersProvider,
+      {bool small = false}) {
+    final chapters = readChaptersProvider.readChapters
+        .where((c) =>
+            c.readDate.year == date.year &&
+            c.readDate.month == date.month &&
+            c.readDate.day == date.day)
+        .toList();
     final bool isToday = _isToday(date);
+    final bool isFuture = date.isAfter(DateTime.now());
+    final bool hasRead = chapters.isNotEmpty;
 
     Color boxColor;
-    if (isToday) {
+    if (isFuture) {
+      boxColor = const Color(0xFFE0E0E0); // Bir tık koyu gri
+    } else if (isToday) {
       boxColor = Colors.blue.withOpacity(0.3);
     } else if (hasRead) {
       boxColor = Colors.green.withOpacity(0.3);
@@ -149,8 +248,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     }
 
     return Container(
-      width: 40,
-      height: 45,
+      width: small ? 32 : 40,
+      height: small ? 45 : 55,
       decoration: BoxDecoration(
         color: boxColor,
         borderRadius: BorderRadius.circular(8),
@@ -160,20 +259,29 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             _getDayName(date),
             style: TextStyle(
-              fontSize: 12,
-              color: isToday ? Colors.blue : Colors.grey[600],
+              fontSize: small ? 10 : 12,
+              color: isToday
+                  ? Colors.blue
+                  : isFuture
+                      ? Colors.black
+                      : Colors.grey[600],
             ),
           ),
           Text(
             date.day.toString(),
             style: TextStyle(
-              fontSize: 14,
+              fontSize: small ? 11 : 16,
               fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-              color: isToday ? Colors.blue : Colors.black,
+              color: isToday
+                  ? Colors.blue
+                  : isFuture
+                      ? Colors.black
+                      : Colors.black,
             ),
           ),
         ],
@@ -229,5 +337,138 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     return date.year == now.year &&
         date.month == now.month &&
         date.day == now.day;
+  }
+
+  Widget _buildDailyChapterChart(ReadChaptersProvider readChaptersProvider) {
+    final now = DateTime.now();
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final List<int> days = List.generate(daysInMonth, (i) => i + 1);
+    final List<int> dailyCounts = List.generate(daysInMonth, (i) {
+      return readChaptersProvider.readChapters
+          .where((c) =>
+              c.readDate.year == now.year &&
+              c.readDate.month == now.month &&
+              c.readDate.day == (i + 1))
+          .length;
+    });
+    final maxY = (dailyCounts.isNotEmpty
+            ? dailyCounts.reduce((a, b) => a > b ? a : b)
+            : 0) +
+        2;
+    final chartWidth = MediaQuery.of(context).size.width - 32;
+    final approxLabelWidth = 60.0;
+    final labelCount = (chartWidth / approxLabelWidth).clamp(3, 8).round();
+    final labelIndexes = <int>[0];
+    for (int i = 1; i < labelCount - 1; i++) {
+      labelIndexes.add(((daysInMonth - 1) * i / (labelCount - 1)).round());
+    }
+    if (!labelIndexes.contains(daysInMonth - 1))
+      labelIndexes.add(daysInMonth - 1);
+    labelIndexes.sort();
+
+    // Animasyon için değerleri ayarla
+    final List<double> animatedValues = List.generate(
+      days.length,
+      (i) => _animationStarted ? dailyCounts[i].toDouble() : 0.0,
+    );
+
+    return SizedBox(
+      height: 240,
+      child: BarChart(
+        BarChartData(
+          maxY: maxY.toDouble(),
+          barTouchData: BarTouchData(enabled: false),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (value, meta) =>
+                    Text(value.toInt().toString()),
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: 1,
+                getTitlesWidget: (value, meta) {
+                  int idx = value.toInt();
+                  if (idx < 0 || idx >= days.length)
+                    return const SizedBox.shrink();
+                  if (!labelIndexes.contains(idx))
+                    return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      '${days[idx]}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.deepPurple,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: true,
+            horizontalInterval: 1,
+            verticalInterval: 1,
+            getDrawingHorizontalLine: (value) => FlLine(
+              color: Colors.deepPurple.withOpacity(0.35),
+              strokeWidth: 1.5,
+            ),
+            getDrawingVerticalLine: (value) => FlLine(
+              color: Colors.deepPurple.withOpacity(0.35),
+              strokeWidth: 1.5,
+            ),
+          ),
+          borderData: FlBorderData(
+            show: true,
+            border: Border(
+              left: BorderSide(color: Colors.deepPurple, width: 2),
+              bottom: BorderSide(color: Colors.deepPurple, width: 2),
+              right: BorderSide(color: Colors.transparent, width: 0),
+              top: BorderSide(color: Colors.transparent, width: 0),
+            ),
+          ),
+          barGroups: List.generate(days.length, (i) {
+            final count = animatedValues[i];
+            return BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  toY: count,
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.deepPurple,
+                      Colors.purpleAccent,
+                      Colors.blueAccent,
+                    ],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
+                  width: 10,
+                  borderRadius: BorderRadius.circular(6),
+                  backDrawRodData: BackgroundBarChartRodData(
+                    show: true,
+                    toY: maxY.toDouble(),
+                    color: Colors.grey.withOpacity(0.07),
+                  ),
+                ),
+              ],
+              showingTooltipIndicators: [],
+            );
+          }),
+        ),
+        swapAnimationDuration: const Duration(milliseconds: 700),
+        swapAnimationCurve: Curves.easeOutCubic,
+      ),
+    );
   }
 }

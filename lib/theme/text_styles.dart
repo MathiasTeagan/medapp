@@ -41,16 +41,18 @@ class AppTextStyles {
   }
 
   static TextStyle bodyMedium(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
     return TextStyle(
-      fontSize: MediaQuery.of(context).size.width * 0.02,
+      fontSize: width * 0.016 < 10.4 ? 10.4 : width * 0.016,
       color: AppColors.secondaryText,
     );
   }
 
   static TextStyle bodySmall(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
     return TextStyle(
-      fontSize: MediaQuery.of(context).size.width * 0.015,
-      color: AppColors.secondaryText,
+      fontSize: width * 0.018 < 12 ? 12 : width * 0.018,
+      color: AppColors.primary,
     );
   }
 

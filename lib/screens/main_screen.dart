@@ -26,10 +26,8 @@ class _MainScreenState extends State<MainScreen> {
     const LibraryScreen(),
     const WhatToReadScreen(),
     const PlanningScreen(),
-    const LogbookScreen(),
     const PerformanceScreen(),
     const JournalsScreen(),
-    const SettingsScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -112,20 +110,12 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Planlama',
           ),
           NavigationDestination(
-            icon: Icon(Icons.book),
-            label: 'Logbook',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.bar_chart),
             label: 'Performans',
           ),
           NavigationDestination(
             icon: Icon(Icons.article),
             label: 'Dergiler',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings),
-            label: 'Ayarlar',
           ),
         ],
       ),

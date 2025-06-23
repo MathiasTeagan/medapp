@@ -16,6 +16,7 @@ import 'profile_edit_screen.dart';
 import '../providers/auth_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth/login_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -525,9 +526,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2,
-          childAspectRatio: 2.5,
-          mainAxisSpacing: size.height * 0.01,
-          crossAxisSpacing: size.width * 0.02,
+          childAspectRatio: 3.2,
+          mainAxisSpacing: size.height * 0.005,
+          crossAxisSpacing: size.width * 0.01,
           children: [
             _buildQuickAccessButton(
               theme,
@@ -577,6 +578,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               context,
             ),
+            _buildQuickAccessButton(
+              theme,
+              'Ayarlar',
+              Icons.settings,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              ),
+              context,
+            ),
           ],
         ),
       ],
@@ -601,8 +614,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: size.width * 0.03,
-            vertical: size.height * 0.01,
+            horizontal: size.width * 0.018,
+            vertical: size.height * 0.006,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -610,15 +623,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Icon(
                 icon,
                 color: theme.colorScheme.primary,
-                size: isSmallScreen ? 20 : 24,
+                size: isSmallScreen ? 16 : 18,
               ),
-              SizedBox(width: size.width * 0.02),
+              SizedBox(width: size.width * 0.012),
               Text(
                 title,
                 style: AppTextStyles.labelLarge(context).copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w500,
-                  fontSize: isSmallScreen ? 12 : 14,
+                  fontSize: isSmallScreen ? 10 : 12,
                 ),
               ),
             ],
